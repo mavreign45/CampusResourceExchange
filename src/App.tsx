@@ -5,7 +5,7 @@ import { MobileNavigation } from './components/layout/MobileNavigation';
 import { DiscoverResources } from './pages/DiscoverResources';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { Resource } from './types/resource';
-import { INITIAL_MOCK_RESOURCES, getMockResources } from './data/mockResources';
+import { INITIAL_MOCK_RESOURCES } from './data/mockResources';
 
 export function App() {
   const [currentPage, setCurrentPage] = useState<NavigationPage>('discover');
@@ -13,7 +13,7 @@ export function App() {
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  // Saved resources set (initialize with a couple of defaults or localStorage)
+  // Saved resources set persisted in localStorage
   const [savedResourceIds, setSavedResourceIds] = useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem('cre_saved_resources');
@@ -37,17 +37,6 @@ export function App() {
       // ignore
     }
   }, [savedResourceIds]);
-
-  // Load resources via mock accessor (decoupled data layer ready for Phase 2 API)
-  useEffect(() => {
-    let mounted = true;
-    getMockResources().then((data) => {
-      if (mounted) setResources(data);
-    });
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   const handleToggleSave = (id: string) => {
     setSavedResourceIds((prev) => {
@@ -108,11 +97,11 @@ export function App() {
           <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
             {currentPage === 'discover' ? (
               <DiscoverResources
-                resources={resources}
                 searchQuery={globalSearchQuery}
                 onSearchQueryChange={setGlobalSearchQuery}
                 savedResourceIds={savedResourceIds}
                 onToggleSaveResource={handleToggleSave}
+                onResourcesLoaded={(loaded) => setResources(loaded)}
               />
             ) : (
               <PlaceholderPage
@@ -132,7 +121,7 @@ export function App() {
                 <strong>Campus Resource Exchange</strong> — Unlock Resources. Empower Innovation.
               </p>
               <p className="text-[11px] text-slate-400">
-                Phase 1 Frontend Prototype • Ready for Phase 2 API Integration
+                Phase 2 Full-Stack Platform • FastAPI & PostgreSQL Backend Integrated
               </p>
             </div>
           </footer>

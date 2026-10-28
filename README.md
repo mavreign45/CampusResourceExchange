@@ -13,124 +13,157 @@ Universities host cutting-edge instruments, camera packages, high-performance co
 
 ---
 
-## 🚀 Phase 1: Frontend Foundation + Resource Discovery
+## 🏗️ Technology Stack
 
-Phase 1 delivers a clean, responsive, and decoupled frontend architecture built with:
-- **React 18** + **Vite 6** + **TypeScript 5**
-- **Tailwind CSS 3** with custom campus deep-navy & cyan accents
-- **Lucide React** icon library
+### Frontend (Phase 1 & Phase 2 Integration)
+- **Framework:** React 18 + Vite 6 + TypeScript 5
+- **Styling:** Tailwind CSS 3 (Deep Navy `#060a17` / `#0a1128`, Cyan `#06b6d4`, Emerald `#10b981`)
+- **Icons:** Lucide React
+- **API Client:** Type-safe fetch client with timeout, error handling, and explicit fallback mode
 
-### What's Included in Phase 1:
-1. **Interactive Resource Catalog**:
-   - High-fidelity visual cards for equipment across 6 categories (Laboratory Equipment, Computers & Electronics, Cameras & Media, Engineering Tools, Presentation Equipment, Other).
-   - Real-time combined filtering by Category, Availability Status, and Campus Building.
-   - Real-time client-side search across equipment names, models, department custodians, and specifications.
-   - Dynamic sorting by Name (A-Z, Z-A), Availability (Available First), and Category.
-2. **Dynamic Summary Metrics**:
-   - Total resources count, Available Now count, Active categories count, and Resources requiring specialized verification.
-   - Dynamically calculated from the decoupled mock data layer.
-3. **Comprehensive Resource Details Modal**:
-   - Detailed specifications, included accessories, room locations, custodian contact info, and usage rules.
-   - Prominent **Request Access** action with informative Phase 1 notice explaining that booking workflows will activate in Phase 2 & 4.
-4. **Application Shell & Navigation**:
-   - Responsive sidebar with desktop and mobile slide-over drawer.
-   - Top contextual app header with search synchronization, notification tray, and student profile.
-   - Clean placeholder views for upcoming modules (My Requests, My Bookings, Saved Resources, Lab Dashboard, Settings) indicating their scheduled phases.
-   - Local bookmark/saved equipment persistence via browser `localStorage`.
+### Backend (Phase 2)
+- **Framework:** FastAPI (Python 3.10+)
+- **Server:** Uvicorn with ASGI hot reload
+- **Database Engine:** PostgreSQL
+- **ORM:** SQLAlchemy 2.x
+- **Driver:** psycopg v3 (binary)
+- **Configuration:** Pydantic v2 + pydantic-settings
+- **Migrations:** Alembic
+- **Testing:** pytest + HTTPX
 
 ---
 
-## 📂 Project Structure
+## 📂 Project Architecture
 
 ```
 CampusResourceExchange/
-├── index.html                     # HTML5 entry with Plus Jakarta Sans typography
-├── package.json                   # Dependencies & scripts
-├── tsconfig.json                  # TypeScript compiler settings
-├── vite.config.ts                 # Vite bundler configuration
-├── tailwind.config.js             # Tailwind CSS theme with campus color palette
-├── postcss.config.js              # PostCSS plugins
-├── scripts/
-│   ├── verify-phase1.js           # Verification check suite
-│   ├── test-filtering.js          # Unit & integration tests for search/filter/sort
-│   └── test-server.js             # Static production build verification server
-├── src/
-│   ├── main.tsx                   # React DOM root entry
-│   ├── App.tsx                    # Shell layout and navigation state
-│   ├── index.css                  # Tailwind styles and custom scrollbars
-│   ├── types/
-│   │   └── resource.ts            # Domain types matching future backend schema
-│   ├── data/
-│   │   └── mockResources.ts       # Decoupled mock dataset and accessor helpers
-│   ├── hooks/
-│   │   └── useResourceFilters.ts  # Filter, search, and sorting state machine
+├── backend/                       # Phase 2 FastAPI Backend
+│   ├── app/
+│   │   ├── main.py                # FastAPI entry, CORS, exception handling
+│   │   ├── seed.py                # Idempotent database seed script
+│   │   ├── core/
+│   │   │   ├── config.py          # Environment settings (pydantic-settings)
+│   │   │   └── database.py        # SQLAlchemy engine, session maker, get_db
+│   │   ├── models/                # Relational ORM models
+│   │   │   ├── category.py        # Category entity
+│   │   │   ├── location.py        # Location entity
+│   │   │   ├── custodian.py       # Custodian entity
+│   │   │   └── resource.py        # Resource entity with foreign keys
+│   │   ├── schemas/               # Pydantic response models
+│   │   │   ├── category.py
+│   │   │   ├── location.py
+│   │   │   ├── custodian.py
+│   │   │   └── resource.py
+│   │   ├── routers/
+│   │   │   └── resources.py       # GET /resources, /summary, /{id}
+│   │   └── services/
+│   │       └── resource_service.py # Filter/sort/pagination logic
+│   ├── alembic/                   # Database migrations
+│   │   ├── env.py
+│   │   └── versions/
+│   │       └── 001_initial_schema.py
+│   ├── tests/
+│   │   ├── conftest.py            # SQLite in-memory test fixtures
+│   │   └── test_resources.py      # 13 backend test cases
+│   ├── requirements.txt           # Python dependencies
+│   ├── .env.example               # Backend environment template
+│   ├── alembic.ini                # Alembic configuration
+│   └── README.md                  # Dedicated backend documentation
+├── src/                           # Phase 1 & 2 Frontend
 │   ├── components/
-│   │   ├── common/
-│   │   │   └── ImageWithFallback.tsx  # Graceful fallback handler for broken/slow media
-│   │   ├── layout/
-│   │   │   ├── AppSidebar.tsx     # Desktop navigation sidebar
-│   │   │   ├── AppHeader.tsx      # Top bar with search and profile
-│   │   │   └── MobileNavigation.tsx # Slide-over mobile drawer
-│   │   ├── resources/
-│   │   │   ├── ResourceCard.tsx   # Equipment display card with status badges
-│   │   │   ├── ResourceGrid.tsx   # Responsive grid layout with empty state
-│   │   │   ├── ResourceFilters.tsx# Category pills and dropdown controls
-│   │   │   ├── ResourceSearch.tsx # Search input with instant clear
-│   │   │   ├── ResourceSummaryCards.tsx # Dynamic inventory metric cards
-│   │   │   └── ResourceDetailsModal.tsx # Full asset inspection modal
-│   │   └── ui/
-│   │       ├── Badge.tsx          # Status and category pill badges
-│   │       ├── Button.tsx         # Accessible interactive button primitive
-│   │       ├── EmptyState.tsx     # Filter empty state with reset trigger
-│   │       └── Modal.tsx          # Accessible modal dialog with backdrop blur
-│   └── pages/
-│       ├── DiscoverResources.tsx  # Main Phase 1 catalog exploration view
-│       └── PlaceholderPage.tsx    # Clean upcoming phase previews
+│   │   ├── common/                # ImageWithFallback
+│   │   ├── layout/                # AppSidebar, AppHeader, MobileNavigation
+│   │   ├── resources/             # ResourceCard, ResourceGrid, ResourceFilters,
+│   │   │                          # ResourceSearch, ResourceSummaryCards, ResourceDetailsModal
+│   │   └── ui/                    # Badge, Button, EmptyState, Modal
+│   ├── data/                      # mockResources.ts (offline fallback / seed reference)
+│   ├── hooks/                     # useResourceFilters.ts
+│   ├── pages/                     # DiscoverResources.tsx, PlaceholderPage.tsx
+│   ├── services/                  # api.ts, resourceService.ts (REST integration)
+│   ├── types/                     # resource.ts (Domain models and API DTOs)
+│   ├── App.tsx                    # Main layout shell and navigation state
+│   ├── main.tsx                   # React root entry
+│   └── index.css                  # Tailwind styles
+├── .env.example                   # Frontend environment template
+├── package.json                   # Frontend npm configuration
+├── tailwind.config.js             # Campus theme configuration
+└── tsconfig.json                  # TypeScript compiler settings
 ```
 
 ---
 
-## 🛠️ Running the Project
+## ⚡ Quickstart Guide
 
-### Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or higher recommended; v24 verified)
-- npm (v9 or higher)
+### 1. Backend Setup (FastAPI & PostgreSQL)
 
-### Installation
 ```bash
-npm install
+# 1. Create and activate virtual environment
+python -m venv backend/.venv
+backend\.venv\Scripts\Activate.ps1    # On Windows
+# source backend/.venv/bin/activate    # On Linux/macOS
+
+# 2. Install dependencies
+pip install -r backend/requirements.txt
+
+# 3. Configure environment
+cp backend/.env.example backend/.env
+# Edit backend/.env with your PostgreSQL credentials
+
+# 4. Apply database migrations
+& "backend/.venv/Scripts/alembic.exe" -c backend/alembic.ini upgrade head
+
+# 5. Seed fictional campus catalog
+& "backend/.venv/Scripts/python.exe" -m app.seed
+
+# 6. Start backend development server
+& "backend/.venv/Scripts/uvicorn.exe" app.main:app --app-dir backend --reload --port 8000
 ```
 
-### Development Server
-Run the local Vite development server:
+Interactive API documentation will be available at:
+- Swagger UI: [http://localhost:8000/api/v1/docs](http://localhost:8000/api/v1/docs)
+- Health Check: [http://localhost:8000/api/v1/health](http://localhost:8000/api/v1/health)
+
+### 2. Frontend Setup (React & Vite)
+
 ```bash
+# 1. Install dependencies
+npm install
+
+# 2. Configure environment (optional, defaults to http://localhost:8000/api/v1)
+cp .env.example .env
+
+# 3. Start frontend development server
 npm run dev
 ```
+
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### Type Check & Production Build
+---
+
+## 🧪 Verification & Testing
+
+### Run Backend Tests (pytest)
 ```bash
+& "backend/.venv/Scripts/python.exe" -m pytest backend/tests -v
+```
+*Executes 13 unit and integration tests covering response schemas, combined filters, search, pagination, 404 handling, summary calculations, and validation rules against an isolated in-memory test database.*
+
+### Verify Frontend TypeScript & Production Build
+```bash
+# Typecheck
+npx tsc --noEmit
+
+# Production build
 npm run build
 ```
 
-### Preview Production Build
-```bash
-npm run preview
-```
-
-### Run Phase 1 Verification Suites
-```bash
-node scripts/verify-phase1.js
-node scripts/test-filtering.js
-```
-
 ---
 
-## 🗺️ Roadmap & Future Phases
+## 🗺️ Roadmap & Phase Progression
 
-- **Phase 1 (Complete)**: Frontend Foundation + Resource Discovery (React, Vite, TS, Tailwind, Lucide).
-- **Phase 2**: FastAPI Backend, PostgreSQL database, SQLAlchemy models, Alembic migrations, and persistent REST API integration.
-- **Phase 3**: Authentication (University SSO / OAuth), user roles (Student, Faculty, Lab Custodian, Admin), and safety certification verification.
-- **Phase 4**: Booking requests, custodian approval/rejection workflows, conflict-free scheduling engine, waitlists, and cancellation management.
-- **Phase 5**: Digital check-in/check-out with QR/keycard handovers, condition reporting, damage incident logs, and automated notification alerts.
-- **Phase 6**: FairShare allocation rules, department utilization analytics dashboards, audit reporting, and security hardening.
+- [x] **Phase 1: Frontend Foundation + Resource Discovery** (React 18, Vite, TypeScript, Tailwind, Lucide).
+- [x] **Phase 2: FastAPI Backend, PostgreSQL Models, API Integration & Persistence** (FastAPI, SQLAlchemy 2.x, psycopg, Alembic, live API integration, loading & error recovery).
+- [ ] **Phase 3: Authentication & Verification Engine** (University SSO, user accounts, student/faculty/custodian roles, safety training credentials).
+- [ ] **Phase 4: Booking & Approval Workflows** (Request submission, custodian approval/rejection queue, conflict prevention, waitlists).
+- [ ] **Phase 5: Check-in/Check-out & Custody Operations** (QR/keycard handover verification, return deadlines, damage incident logging).
+- [ ] **Phase 6: FairShare Allocation & Analytics Dashboard** (FairShare allocation algorithm, equipment utilization heatmaps, audit reporting).

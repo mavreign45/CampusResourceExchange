@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, CheckCircle2, LayoutGrid, ShieldCheck } from 'lucide-react';
+import { Layers, CheckCircle2, LayoutGrid, ShieldCheck, Database } from 'lucide-react';
 import { ResourceSummaryStats } from '../../types/resource';
 
 interface ResourceSummaryCardsProps {
@@ -50,10 +50,17 @@ export const ResourceSummaryCards: React.FC<ResourceSummaryCardsProps> = ({ stat
         <span className="font-semibold uppercase tracking-wider text-[11px] text-slate-400">
           Campus Inventory Snapshot
         </span>
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-[11px] font-medium">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
-          Live Mock Data (Phase 1)
-        </span>
+        {stats.isBackendGenerated ? (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-medium">
+            <Database className="w-3 h-3 text-emerald-600" />
+            PostgreSQL & FastAPI Live Data
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            Offline Demo Data (Not synced)
+          </span>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
