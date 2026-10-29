@@ -8,6 +8,19 @@ from app.schemas.resource import (
     ResourceListResponse,
     ResourceSummaryResponse,
 )
+from app.schemas.user import (
+    UserBase,
+    UserRegister,
+    UserLogin,
+    UserRead,
+    UserRoleUpdate,
+    TokenResponse,
+)
+from app.schemas.eligibility import (
+    EligibilityRequestCreate,
+    EligibilityReviewUpdate,
+    EligibilityRead,
+)
 
 __all__ = [
     "CategoryBase",
@@ -24,4 +37,13 @@ __all__ = [
     "ResourceRead",
     "ResourceListResponse",
     "ResourceSummaryResponse",
+    "UserBase",
+    "UserRegister",
+    "UserLogin",
+    "UserRead",
+    "UserRoleUpdate",
+    "TokenResponse",
+    "EligibilityRequestCreate",
+    "EligibilityReviewUpdate",
+    "EligibilityRead",
 ]

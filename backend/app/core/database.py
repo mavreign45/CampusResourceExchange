@@ -12,6 +12,10 @@ logger = logging.getLogger(__name__)
 connect_args = {}
 if settings.DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
+else:
+    # Set a fast connection timeout for PostgreSQL so unreachable database hosts fail quickly
+    # and do not hang the health checks or application threads
+    connect_args = {"connect_timeout": 3}
 
 try:
     engine = create_engine(

@@ -1,10 +1,38 @@
 /**
  * Core API Client for Campus Resource Exchange.
  * Reads base URL from Vite environment variables with graceful fallback.
+ * Manages JWT Bearer authentication headers.
  */
 
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+
+const TOKEN_STORAGE_KEY = 'cre_auth_token';
+
+let currentAuthToken: string | null = (() => {
+  try {
+    return localStorage.getItem(TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+})();
+
+export function setAuthToken(token: string | null): void {
+  currentAuthToken = token;
+  try {
+    if (token) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    } else {
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+    }
+  } catch {
+    // localStorage may be disabled
+  }
+}
+
+export function getAuthToken(): string | null {
+  return currentAuthToken;
+}
 
 export class ApiError extends Error {
   status: number;
@@ -29,15 +57,22 @@ export async function apiClient<T>(
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${API_BASE_URL}${cleanEndpoint}`;
 
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    ...((options.headers as Record<string, string>) || {}),
+  };
+
+  // Automatically attach Bearer token if available and not explicitly provided
+  if (currentAuthToken && !headers['Authorization']) {
+    headers['Authorization'] = `Bearer ${currentAuthToken}`;
+  }
+
   try {
     const response = await fetch(url, {
       ...options,
+      headers,
       signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        ...(options.headers || {}),
-      },
     });
 
     clearTimeout(timeoutId);

@@ -1,10 +1,10 @@
 import logging
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from app.core.config import settings
 from app.core.database import check_db_connection
-from app.routers import resources_router
+from app.routers import resources_router, auth_router, eligibility_router
 
 # Configure structured logging
 logging.basicConfig(
@@ -16,10 +16,10 @@ logger = logging.getLogger("campus_resource_exchange")
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="Campus Resource Exchange REST API — Unlock Resources. Empower Innovation.",
-    version="0.2.0",
-    docs_url=f"{settings.API_V1_STR}/docs",
-    redoc_url=f"{settings.API_V1_STR}/redoc",
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    version="0.3.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
 )
 
 # Configure CORS Middleware
@@ -27,7 +27,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -48,10 +48,27 @@ def root():
     return {
         "project": settings.PROJECT_NAME,
         "tagline": "Unlock Resources. Empower Innovation.",
-        "phase": "Phase 2: FastAPI + PostgreSQL Backend Foundation",
-        "docs": f"{settings.API_V1_STR}/docs",
+        "phase": "Phase 3: User Authentication & Role-Based Verification Engine",
+        "docs": "/docs",
+        "openapi": "/openapi.json",
         "api_v1": settings.API_V1_STR,
     }
+
+
+# Documentation convenience redirects for /api/v1 prefix
+@app.get(f"{settings.API_V1_STR}/docs", include_in_schema=False)
+def api_v1_docs_redirect():
+    return RedirectResponse(url="/docs")
+
+
+@app.get(f"{settings.API_V1_STR}/redoc", include_in_schema=False)
+def api_v1_redoc_redirect():
+    return RedirectResponse(url="/redoc")
+
+
+@app.get(f"{settings.API_V1_STR}/openapi.json", include_in_schema=False)
+def api_v1_openapi_redirect():
+    return RedirectResponse(url="/openapi.json")
 
 
 @app.get("/health", tags=["Health"])
@@ -66,4 +83,6 @@ def health_check():
 
 
 # Register routers
+app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(resources_router, prefix=settings.API_V1_STR)
+app.include_router(eligibility_router, prefix=settings.API_V1_STR)

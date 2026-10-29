@@ -1,6 +1,15 @@
-from typing import List, Union
+from typing import List, Optional, Union
+from pathlib import Path
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_BASE_DIR = Path(__file__).resolve().parent.parent.parent
+_ROOT_DIR = _BASE_DIR.parent
+_ENV_FILES = (
+    str(_ROOT_DIR / ".env"),
+    str(_BASE_DIR / ".env"),
+    ".env",
+)
 
 
 class Settings(BaseSettings):
@@ -11,6 +20,17 @@ class Settings(BaseSettings):
 
     # Database configuration - defaults to PostgreSQL with psycopg driver
     DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/campus_resources"
+
+    # Authentication & Security
+    # In production, set JWT_SECRET_KEY via environment variable (.env)
+    JWT_SECRET_KEY: str = "cre-insecure-dev-secret-key-replace-in-production-32-bytes-min!"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
+
+    # Optional initial administrator bootstrap (populated only via .env)
+    ADMIN_BOOTSTRAP_EMAIL: Optional[str] = None
+    ADMIN_BOOTSTRAP_PASSWORD: Optional[str] = None
+    ADMIN_BOOTSTRAP_NAME: str = "System Administrator"
 
     # CORS configuration
     CORS_ORIGINS: Union[List[str], str] = [
@@ -35,7 +55,7 @@ class Settings(BaseSettings):
         ]
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_ENV_FILES,
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",

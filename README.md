@@ -15,21 +15,38 @@ Universities host cutting-edge instruments, camera packages, high-performance co
 
 ## 🏗️ Technology Stack
 
-### Frontend (Phase 1 & Phase 2 Integration)
+### Frontend (React + Vite + TypeScript)
 - **Framework:** React 18 + Vite 6 + TypeScript 5
-- **Styling:** Tailwind CSS 3 (Deep Navy `#060a17` / `#0a1128`, Cyan `#06b6d4`, Emerald `#10b981`)
+- **Styling:** Tailwind CSS 3 (Deep Navy `#060a17`, Cyan `#06b6d4`, Emerald `#10b981`)
 - **Icons:** Lucide React
-- **API Client:** Type-safe fetch client with timeout, error handling, and explicit fallback mode
+- **Authentication & RBAC:** React Context (`AuthContext`), persistent JWT token handling in `apiClient`
+- **Pages & Modules:**
+  - Resource Discovery Catalog & Filter Controls
+  - "My Clearances" Training & Safety Verification Dashboard
+  - Custodian & Admin "Review Queue" for approving/rejecting clearances
+  - Administrator User & Role Management Table
+  - Bookmarked / Saved Resources View
 
-### Backend (Phase 2)
+### Backend (FastAPI + PostgreSQL + SQLAlchemy)
 - **Framework:** FastAPI (Python 3.10+)
 - **Server:** Uvicorn with ASGI hot reload
-- **Database Engine:** PostgreSQL
+- **Database Engine:** PostgreSQL (with SQLite in-memory for automated tests)
 - **ORM:** SQLAlchemy 2.x
 - **Driver:** psycopg v3 (binary)
-- **Configuration:** Pydantic v2 + pydantic-settings
+- **Security:** bcrypt password hashing + PyJWT Bearer token authentication
+- **RBAC:** Reusable FastAPI dependencies (`get_current_user`, `require_roles`)
 - **Migrations:** Alembic
-- **Testing:** pytest + HTTPX
+- **Testing:** pytest (34 unit and integration test cases)
+
+---
+
+## 👥 Role-Based Access Control (RBAC)
+
+The platform enforces four campus roles:
+1. **Student (`Student`):** Public registration default. Can browse equipment, submit safety clearance documentation, and view active verified badges.
+2. **Faculty Researcher (`Faculty Researcher`):** Cross-lab research privileges for specialized equipment.
+3. **Lab Custodian (`Lab Custodian`):** Manages lab facilities; reviews student documentation, verifies training credentials, and approves clearances with audit notes.
+4. **Administrator (`Admin`):** Full campus oversight; bootstrapped via environment configuration; manages user roles and permissions.
 
 ---
 
@@ -37,133 +54,95 @@ Universities host cutting-edge instruments, camera packages, high-performance co
 
 ```
 CampusResourceExchange/
-├── backend/                       # Phase 2 FastAPI Backend
+├── backend/                       # FastAPI Backend
 │   ├── app/
-│   │   ├── main.py                # FastAPI entry, CORS, exception handling
-│   │   ├── seed.py                # Idempotent database seed script
+│   │   ├── main.py                # App entrypoint, CORS, exception handling
+│   │   ├── seed.py                # Database seed script & admin bootstrap
 │   │   ├── core/
-│   │   │   ├── config.py          # Environment settings (pydantic-settings)
-│   │   │   └── database.py        # SQLAlchemy engine, session maker, get_db
-│   │   ├── models/                # Relational ORM models
-│   │   │   ├── category.py        # Category entity
-│   │   │   ├── location.py        # Location entity
-│   │   │   ├── custodian.py       # Custodian entity
-│   │   │   └── resource.py        # Resource entity with foreign keys
-│   │   ├── schemas/               # Pydantic response models
-│   │   │   ├── category.py
-│   │   │   ├── location.py
-│   │   │   ├── custodian.py
-│   │   │   └── resource.py
-│   │   ├── routers/
-│   │   │   └── resources.py       # GET /resources, /summary, /{id}
-│   │   └── services/
-│   │       └── resource_service.py # Filter/sort/pagination logic
-│   ├── alembic/                   # Database migrations
-│   │   ├── env.py
-│   │   └── versions/
-│   │       └── 001_initial_schema.py
-│   ├── tests/
-│   │   ├── conftest.py            # SQLite in-memory test fixtures
-│   │   └── test_resources.py      # 13 backend test cases
+│   │   │   ├── config.py          # Settings, JWT, Admin bootstrap config
+│   │   │   ├── database.py        # SQLAlchemy engine, session maker, get_db
+│   │   │   ├── security.py        # Password hashing & JWT operations
+│   │   │   └── dependencies.py    # get_current_user, require_roles
+│   │   ├── models/                # User, EligibilityVerification, Resource, etc.
+│   │   ├── schemas/               # Pydantic validation & response models
+│   │   ├── routers/               # auth.py, eligibility.py, resources.py
+│   │   └── services/              # auth_service.py, eligibility_service.py, resource_service.py
+│   ├── alembic/                   # Database migrations (001, 002)
+│   ├── tests/                     # 34 pytest cases (test_auth, test_eligibility, test_resources)
 │   ├── requirements.txt           # Python dependencies
 │   ├── .env.example               # Backend environment template
-│   ├── alembic.ini                # Alembic configuration
-│   └── README.md                  # Dedicated backend documentation
-├── src/                           # Phase 1 & 2 Frontend
+│   └── README.md                  # Comprehensive backend documentation
+├── src/                           # React Frontend
 │   ├── components/
-│   │   ├── common/                # ImageWithFallback
+│   │   ├── auth/                  # AuthModal (Sign In / Student Register / Demo shortcuts)
+│   │   ├── eligibility/           # VerificationRequestModal
 │   │   ├── layout/                # AppSidebar, AppHeader, MobileNavigation
 │   │   ├── resources/             # ResourceCard, ResourceGrid, ResourceFilters,
 │   │   │                          # ResourceSearch, ResourceSummaryCards, ResourceDetailsModal
 │   │   └── ui/                    # Badge, Button, EmptyState, Modal
-│   ├── data/                      # mockResources.ts (offline fallback / seed reference)
-│   ├── hooks/                     # useResourceFilters.ts
-│   ├── pages/                     # DiscoverResources.tsx, PlaceholderPage.tsx
-│   ├── services/                  # api.ts, resourceService.ts (REST integration)
-│   ├── types/                     # resource.ts (Domain models and API DTOs)
-│   ├── App.tsx                    # Main layout shell and navigation state
-│   ├── main.tsx                   # React root entry
-│   └── index.css                  # Tailwind styles
-├── .env.example                   # Frontend environment template
-├── package.json                   # Frontend npm configuration
-├── tailwind.config.js             # Campus theme configuration
-└── tsconfig.json                  # TypeScript compiler settings
+│   ├── context/                   # AuthContext (user, token, role, quick login)
+│   ├── pages/                     # DiscoverResources, EligibilityDashboard,
+│   │                              # VerificationReviewQueue, AdminUsersPage, PlaceholderPage
+│   ├── services/                  # api.ts, authService.ts, eligibilityService.ts, resourceService.ts
+│   ├── types/                     # auth.ts, resource.ts
+│   ├── App.tsx                    # App shell with AuthProvider & role-based routing
+│   └── main.tsx                   # React root entry
+└── package.json
 ```
 
 ---
 
 ## ⚡ Quickstart Guide
 
-### 1. Backend Setup (FastAPI & PostgreSQL)
+### 1. Backend Setup
 
 ```bash
-# 1. Create and activate virtual environment
-python -m venv backend/.venv
-backend\.venv\Scripts\Activate.ps1    # On Windows
-# source backend/.venv/bin/activate    # On Linux/macOS
+# 1. Activate Python virtual environment
+backend\.venv\Scripts\Activate.ps1
 
 # 2. Install dependencies
 pip install -r backend/requirements.txt
 
-# 3. Configure environment
-cp backend/.env.example backend/.env
-# Edit backend/.env with your PostgreSQL credentials
+# 3. Create .env from template
+copy backend\.env.example backend\.env
 
-# 4. Apply database migrations
-& "backend/.venv/Scripts/alembic.exe" -c backend/alembic.ini upgrade head
+# 4. Run database migrations
+cd backend
+alembic upgrade head
 
-# 5. Seed fictional campus catalog
-& "backend/.venv/Scripts/python.exe" -m app.seed
+# 5. Seed data and bootstrap admin
+python -m app.seed
 
-# 6. Start backend development server
-& "backend/.venv/Scripts/uvicorn.exe" app.main:app --app-dir backend --reload --port 8000
+# 6. Run FastAPI server from project root (Port 8000)
+uvicorn app.main:app --app-dir backend --reload --port 8000
+# OR:
+uvicorn backend.app.main:app --reload --port 8000
 ```
 
-Interactive API documentation will be available at:
-- Swagger UI: [http://localhost:8000/api/v1/docs](http://localhost:8000/api/v1/docs)
-- Health Check: [http://localhost:8000/api/v1/health](http://localhost:8000/api/v1/health)
-
-### 2. Frontend Setup (React & Vite)
+### 2. Frontend Setup
 
 ```bash
 # 1. Install dependencies
 npm install
 
-# 2. Configure environment (optional, defaults to http://localhost:8000/api/v1)
-cp .env.example .env
-
-# 3. Start frontend development server
+# 2. Run Vite development server (Port 3000)
 npm run dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
----
-
-## 🧪 Verification & Testing
-
-### Run Backend Tests (pytest)
-```bash
-& "backend/.venv/Scripts/python.exe" -m pytest backend/tests -v
-```
-*Executes 13 unit and integration tests covering response schemas, combined filters, search, pagination, 404 handling, summary calculations, and validation rules against an isolated in-memory test database.*
-
-### Verify Frontend TypeScript & Production Build
-```bash
-# Typecheck
-npx tsc --noEmit
-
-# Production build
+# 3. Production build & TypeScript check
 npm run build
 ```
 
 ---
 
-## 🗺️ Roadmap & Phase Progression
+## 🧪 Running Automated Tests
 
-- [x] **Phase 1: Frontend Foundation + Resource Discovery** (React 18, Vite, TypeScript, Tailwind, Lucide).
-- [x] **Phase 2: FastAPI Backend, PostgreSQL Models, API Integration & Persistence** (FastAPI, SQLAlchemy 2.x, psycopg, Alembic, live API integration, loading & error recovery).
-- [ ] **Phase 3: Authentication & Verification Engine** (University SSO, user accounts, student/faculty/custodian roles, safety training credentials).
-- [ ] **Phase 4: Booking & Approval Workflows** (Request submission, custodian approval/rejection queue, conflict prevention, waitlists).
-- [ ] **Phase 5: Check-in/Check-out & Custody Operations** (QR/keycard handover verification, return deadlines, damage incident logging).
-- [ ] **Phase 6: FairShare Allocation & Analytics Dashboard** (FairShare allocation algorithm, equipment utilization heatmaps, audit reporting).
+Run backend tests:
+```bash
+& "backend/.venv/Scripts/python.exe" -m pytest backend/tests -v
+```
+All 34 tests will pass against an isolated test database.
+
+Run frontend TypeScript check:
+```bash
+npx tsc --noEmit
+```

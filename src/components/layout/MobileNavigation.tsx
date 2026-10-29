@@ -8,6 +8,7 @@ interface MobileNavigationProps {
   currentPage: NavigationPage;
   onNavigate: (page: NavigationPage) => void;
   savedCount: number;
+  onOpenAuthModal?: () => void;
 }
 
 export const MobileNavigation: React.FC<MobileNavigationProps> = ({
@@ -16,6 +17,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
   currentPage,
   onNavigate,
   savedCount,
+  onOpenAuthModal,
 }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -63,6 +65,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
             onNavigate={onNavigate}
             savedCount={savedCount}
             onCloseMobile={onClose}
+            onOpenAuthModal={onOpenAuthModal}
             className="w-full h-full border-r-0"
           />
         </div>

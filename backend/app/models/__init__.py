@@ -2,5 +2,16 @@ from app.models.category import Category
 from app.models.location import Location
 from app.models.custodian import Custodian
 from app.models.resource import Resource
+from app.models.user import User, UserRole
+from app.models.eligibility import EligibilityVerification, VerificationStatus
 
-__all__ = ["Category", "Location", "Custodian", "Resource"]
+__all__ = [
+    "Category",
+    "Location",
+    "Custodian",
+    "Resource",
+    "User",
+    "UserRole",
+    "EligibilityVerification",
+    "VerificationStatus",
+]

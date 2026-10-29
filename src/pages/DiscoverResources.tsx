@@ -30,6 +30,7 @@ interface DiscoverResourcesProps {
   savedResourceIds: Set<string>;
   onToggleSaveResource: (id: string) => void;
   onResourcesLoaded?: (resources: Resource[]) => void;
+  onOpenAuthModal?: () => void;
 }
 
 export const DiscoverResources: React.FC<DiscoverResourcesProps> = ({
@@ -38,6 +39,7 @@ export const DiscoverResources: React.FC<DiscoverResourcesProps> = ({
   savedResourceIds,
   onToggleSaveResource,
   onResourcesLoaded,
+  onOpenAuthModal,
 }) => {
   // Data states
   const [resources, setResources] = useState<Resource[]>([]);
@@ -365,6 +367,7 @@ export const DiscoverResources: React.FC<DiscoverResourcesProps> = ({
         onClose={handleCloseDetails}
         isSaved={selectedResource ? savedResourceIds.has(selectedResource.id) : false}
         onToggleSave={onToggleSaveResource}
+        onOpenAuthModal={onOpenAuthModal}
       />
     </div>
   );

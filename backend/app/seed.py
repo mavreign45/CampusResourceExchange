@@ -730,6 +730,12 @@ def seed_database(db: Session = None):
         db.commit()
         logger.info(f"Database seed complete! Processed {len(FICTIONAL_RESOURCES)} resources ({seeded_count} newly created).")
 
+        # Optional Phase 3: Bootstrap administrator if configured in .env
+        from app.services.auth_service import AuthService
+        bootstrapped = AuthService.bootstrap_admin_if_configured(db)
+        if bootstrapped:
+            logger.info(f"Bootstrap administrator confirmed: {bootstrapped.email}")
+
     except Exception as e:
         db.rollback()
         logger.error(f"Seeding failed: {e}")
