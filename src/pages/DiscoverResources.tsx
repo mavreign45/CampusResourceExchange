@@ -280,7 +280,7 @@ export const DiscoverResources: React.FC<DiscoverResourcesProps> = ({
         <div className="relative z-10 max-w-3xl space-y-3">
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 text-xs font-semibold">
             <Database className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Campus Resource Exchange • Phase 2 API Connected</span>
+            <span>Campus Resource Exchange • Live Catalog</span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight">

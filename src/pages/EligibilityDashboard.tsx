@@ -100,7 +100,7 @@ export const EligibilityDashboard: React.FC<EligibilityDashboardProps> = ({
               My Training Clearances & Certifications
             </h1>
             <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800">
-              Phase 3 Live
+              Verified Portal
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">

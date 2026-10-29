@@ -22,8 +22,10 @@ Universities host cutting-edge instruments, camera packages, high-performance co
 - **Authentication & RBAC:** React Context (`AuthContext`), persistent JWT token handling in `apiClient`
 - **Pages & Modules:**
   - Resource Discovery Catalog & Filter Controls
+  - Interactive "Reserve Resource" Booking Workflow & Conflict Prevention
+  - "My Requests" Tracking Dashboard with Real-Time Custody Status
+  - Custodian & Admin "Review Queue" for Approvals, Pickups, and Returns
   - "My Clearances" Training & Safety Verification Dashboard
-  - Custodian & Admin "Review Queue" for approving/rejecting clearances
   - Administrator User & Role Management Table
   - Bookmarked / Saved Resources View
 
@@ -35,8 +37,8 @@ Universities host cutting-edge instruments, camera packages, high-performance co
 - **Driver:** psycopg v3 (binary)
 - **Security:** bcrypt password hashing + PyJWT Bearer token authentication
 - **RBAC:** Reusable FastAPI dependencies (`get_current_user`, `require_roles`)
-- **Migrations:** Alembic
-- **Testing:** pytest (34 unit and integration test cases)
+- **Migrations:** Alembic (001, 002, 003)
+- **Testing:** pytest (56 unit and integration test cases)
 
 ---
 
@@ -65,10 +67,10 @@ CampusResourceExchange/
 │   │   │   └── dependencies.py    # get_current_user, require_roles
 │   │   ├── models/                # User, EligibilityVerification, Resource, etc.
 │   │   ├── schemas/               # Pydantic validation & response models
-│   │   ├── routers/               # auth.py, eligibility.py, resources.py
-│   │   └── services/              # auth_service.py, eligibility_service.py, resource_service.py
-│   ├── alembic/                   # Database migrations (001, 002)
-│   ├── tests/                     # 34 pytest cases (test_auth, test_eligibility, test_resources)
+│   │   ├── routers/               # auth.py, eligibility.py, resources.py, reservations.py
+│   │   └── services/              # auth_service.py, eligibility_service.py, resource_service.py, reservation_service.py
+│   ├── alembic/                   # Database migrations (001, 002, 003)
+│   ├── tests/                     # 56 pytest cases (test_auth, test_eligibility, test_resources, test_reservations)
 │   ├── requirements.txt           # Python dependencies
 │   ├── .env.example               # Backend environment template
 │   └── README.md                  # Comprehensive backend documentation
@@ -76,15 +78,16 @@ CampusResourceExchange/
 │   ├── components/
 │   │   ├── auth/                  # AuthModal (Sign In / Student Register / Demo shortcuts)
 │   │   ├── eligibility/           # VerificationRequestModal
+│   │   ├── reservations/          # ReservationModal, ReservationReviewTab
 │   │   ├── layout/                # AppSidebar, AppHeader, MobileNavigation
 │   │   ├── resources/             # ResourceCard, ResourceGrid, ResourceFilters,
 │   │   │                          # ResourceSearch, ResourceSummaryCards, ResourceDetailsModal
 │   │   └── ui/                    # Badge, Button, EmptyState, Modal
 │   ├── context/                   # AuthContext (user, token, role, quick login)
-│   ├── pages/                     # DiscoverResources, EligibilityDashboard,
+│   ├── pages/                     # DiscoverResources, MyRequestsPage, EligibilityDashboard,
 │   │                              # VerificationReviewQueue, AdminUsersPage, PlaceholderPage
-│   ├── services/                  # api.ts, authService.ts, eligibilityService.ts, resourceService.ts
-│   ├── types/                     # auth.ts, resource.ts
+│   ├── services/                  # api.ts, authService.ts, eligibilityService.ts, resourceService.ts, reservationService.ts
+│   ├── types/                     # auth.ts, resource.ts, reservation.ts
 │   ├── App.tsx                    # App shell with AuthProvider & role-based routing
 │   └── main.tsx                   # React root entry
 └── package.json
@@ -134,13 +137,41 @@ npm run build
 
 ---
 
+## 🔄 Resource Reservation Lifecycle & Endpoints
+
+### Status Flow
+```
+Pending → Approved | Rejected
+Approved → Ready for Pickup | Cancelled
+Ready for Pickup → Collected | Cancelled
+Collected → Return Pending
+Return Pending → Completed | Overdue
+Overdue → Completed
+```
+
+### Endpoints (Base `/api/v1`)
+| Method | Endpoint | Description | Permissions |
+|--------|----------|-------------|-------------|
+| `POST` | `/requests` | Create reservation request | Authenticated (Verified clearance if required) |
+| `GET` | `/requests/me` | List current user's reservations | Authenticated |
+| `GET` | `/requests/review-queue` | List pending requests | Lab Custodian, Admin |
+| `GET` | `/requests/{id}` | Get single reservation details | Requester, Lab Custodian, Admin |
+| `POST` | `/requests/{id}/cancel` | Cancel reservation | Requester, Admin (Pending/Approved only) |
+| `PATCH` | `/requests/{id}/review` | Approve or Reject with notes | Lab Custodian, Admin (No self-review) |
+| `POST` | `/requests/{id}/ready` | Mark Ready for Pickup | Lab Custodian, Admin |
+| `POST` | `/requests/{id}/collect` | Record equipment collection | Lab Custodian, Admin |
+| `POST` | `/requests/{id}/return` | Record equipment return | Lab Custodian, Admin |
+| `POST` | `/requests/{id}/complete` | Complete after return inspection | Lab Custodian, Admin |
+
+---
+
 ## 🧪 Running Automated Tests
 
 Run backend tests:
 ```bash
 & "backend/.venv/Scripts/python.exe" -m pytest backend/tests -v
 ```
-All 34 tests will pass against an isolated test database.
+All **56 tests** pass against an isolated test database (covers authentication, eligibility, resources, reservation conflict prevention, overlap detection, lifecycle transitions, and timestamps).
 
 Run frontend TypeScript check:
 ```bash

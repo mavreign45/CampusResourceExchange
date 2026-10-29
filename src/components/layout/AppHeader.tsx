@@ -194,16 +194,16 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             >
               <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                 <span className="font-bold text-slate-900">Campus Alerts</span>
-                <span className="text-[10px] text-cyan-600 font-semibold">Phase 3 Active</span>
+                <span className="text-[10px] text-cyan-600 font-semibold">Active</span>
               </div>
               <div className="py-3 space-y-2.5">
                 <div className="p-2.5 bg-campus-50/70 rounded-lg border border-campus-100">
                   <div className="flex items-center justify-between text-campus-900 font-semibold text-[11px]">
-                    <span>Authentication & RBAC Live</span>
-                    <span className="text-[9px] text-campus-600">Phase 3</span>
+                    <span>Reservations &amp; Verification Live</span>
+                    <span className="text-[9px] text-campus-600">Updated</span>
                   </div>
                   <p className="text-slate-600 text-[11px] mt-1 leading-normal">
-                    User registration, JWT logins, and lab training clearances are now fully operational.
+                    Equipment reservations, custody workflows, and safety clearances are now active.
                   </p>
                 </div>
               </div>

@@ -84,7 +84,7 @@ export const PlaceholderPage: React.FC<PlaceholderPageProps> = ({
       case 'requests':
         return {
           title: 'My Access Requests',
-          targetPhase: 'Phase 4: Request & Approval Engine',
+          targetPhase: 'Request & Approval Engine',
           icon: <FileClock className="w-8 h-8 text-campus-600" />,
           description:
             'A transparent queue for tracking submitted resource requests, custodian review status, endorsement requirements, and reservation validity.',
@@ -98,7 +98,7 @@ export const PlaceholderPage: React.FC<PlaceholderPageProps> = ({
       case 'bookings':
         return {
           title: 'My Active Bookings',
-          targetPhase: 'Phase 4 & 5: Reservations & Handover Tracking',
+          targetPhase: 'Reservations & Handover Tracking',
           icon: <CalendarCheck className="w-8 h-8 text-teal-600" />,
           description:
             'Manage confirmed equipment reservations, upcoming pickup windows, QR code check-in handovers, and return deadlines.',
@@ -112,7 +112,7 @@ export const PlaceholderPage: React.FC<PlaceholderPageProps> = ({
       case 'dashboard':
         return {
           title: 'Lab Custodian & Department Dashboard',
-          targetPhase: 'Phase 6: FairShare Analytics & Lab Management',
+          targetPhase: 'Lab Oversight & FairShare Analytics',
           icon: <LayoutDashboard className="w-8 h-8 text-cyan-600" />,
           description:
             'Administrative command center for lab managers and department chairs to monitor asset utilization, equipment health, and fair share quota enforcement.',
@@ -126,7 +126,7 @@ export const PlaceholderPage: React.FC<PlaceholderPageProps> = ({
       case 'settings':
         return {
           title: 'Account, Roles & Training Certifications',
-          targetPhase: 'Phase 3: Auth & Identity Verification',
+          targetPhase: 'Account & Training Settings',
           icon: <Settings className="w-8 h-8 text-slate-700" />,
           description:
             'Manage university SSO authentication, verified lab safety clearances, student organization affiliations, and communication preferences.',
@@ -140,7 +140,7 @@ export const PlaceholderPage: React.FC<PlaceholderPageProps> = ({
       default:
         return {
           title: 'Upcoming Feature',
-          targetPhase: 'Future Development Phase',
+          targetPhase: 'Platform Feature',
           icon: <Sparkles className="w-8 h-8 text-campus-600" />,
           description: 'This module is scheduled for release in an upcoming milestone.',
           features: ['Planned enhancement', 'Architecture ready for API integration'],
@@ -195,7 +195,7 @@ export const PlaceholderPage: React.FC<PlaceholderPageProps> = ({
             onClick={onNavigateToDiscover}
             icon={<ArrowLeft className="w-4 h-4" />}
           >
-            Back to Discover Resources (Phase 1)
+            Back to Discover Resources
           </Button>
         </div>
       </div>

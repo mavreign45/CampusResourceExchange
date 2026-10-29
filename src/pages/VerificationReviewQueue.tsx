@@ -18,9 +18,11 @@ import { EligibilityRecord, VerificationStatus } from '../types/auth';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
+import { ReservationReviewTab } from '../components/reservations/ReservationReviewTab';
 
 export const VerificationReviewQueue: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
+  const [activeTab, setActiveTab] = useState<'reservations' | 'clearances'>('reservations');
   const [requests, setRequests] = useState<EligibilityRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -155,7 +157,37 @@ export const VerificationReviewQueue: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter Tabs */}
+      {/* Top Level Category Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200">
+        <button
+          type="button"
+          onClick={() => setActiveTab('reservations')}
+          className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all ${
+            activeTab === 'reservations'
+              ? 'border-campus-600 text-campus-700'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Equipment Reservations
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('clearances')}
+          className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all ${
+            activeTab === 'clearances'
+              ? 'border-campus-600 text-campus-700'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Safety Clearances &amp; Training
+        </button>
+      </div>
+
+      {activeTab === 'reservations' ? (
+        <ReservationReviewTab />
+      ) : (
+        <>
+          {/* Filter Tabs */}
       <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-xl max-w-fit">
         {['Pending Review', 'Verified', 'Rejected', 'All'].map((tab) => (
           <button
@@ -306,6 +338,8 @@ export const VerificationReviewQueue: React.FC = () => {
           })}
         </div>
       )}
+    </>
+  )}
 
       {/* Review Modal */}
       <Modal

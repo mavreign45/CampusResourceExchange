@@ -55,6 +55,11 @@ class Resource(Base):
     category = relationship("Category", back_populates="resources", lazy="joined")
     location = relationship("Location", back_populates="resources", lazy="joined")
     custodian = relationship("Custodian", back_populates="resources", lazy="joined")
+    reservations = relationship(
+        "Reservation",
+        back_populates="resource",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self) -> str:
         return f"<Resource id='{self.id}' name='{self.name}' status='{self.availability_status}'>"

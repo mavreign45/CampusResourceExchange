@@ -204,6 +204,20 @@ Interactive API documentation will be available at:
 | `GET` | `/api/v1/resources/summary` | Public | Live count of total, available, and verified assets |
 | `GET` | `/api/v1/resources/{id}` | Public | Detailed resource specifications and location |
 
+### 📅 Reservations & Custody Workflow (`/api/v1/requests`)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/requests` | Authenticated | Submit reservation request (checks interval overlap & clearance) |
+| `GET` | `/api/v1/requests/me` | Authenticated | List current authenticated user's reservations |
+| `GET` | `/api/v1/requests/review-queue` | Custodian / Admin | Review queue of pending reservation requests |
+| `GET` | `/api/v1/requests/{id}` | Requester / Custodian / Admin | Single reservation details |
+| `POST` | `/api/v1/requests/{id}/cancel` | Requester / Admin | Cancel request (`Pending` or `Approved` only) |
+| `PATCH` | `/api/v1/requests/{id}/review` | Custodian / Admin | Approve or Reject with audit notes (no self-approval) |
+| `POST` | `/api/v1/requests/{id}/ready` | Custodian / Admin | Mark as Ready for Pickup (`Approved` → `Ready for Pickup`) |
+| `POST` | `/api/v1/requests/{id}/collect` | Custodian / Admin | Record equipment handover (`Ready for Pickup` → `Collected`) |
+| `POST` | `/api/v1/requests/{id}/return` | Custodian / Admin | Record equipment return (`Collected` → `Return Pending`) |
+| `POST` | `/api/v1/requests/{id}/complete` | Custodian / Admin | Complete reservation after inspection (`Return Pending` → `Completed`) |
+
 ---
 
 ## 🧪 Automated Testing
@@ -213,7 +227,8 @@ Run the full pytest suite:
 & "backend/.venv/Scripts/python.exe" -m pytest backend/tests -v
 ```
 
-All 34 tests run in an isolated in-memory SQLite database:
+All **56 tests** run in an isolated in-memory SQLite database:
 - `test_auth.py`: 12 tests (registration, role assignment safety, hashing, JWT expiration, admin RBAC)
 - `test_eligibility.py`: 9 tests (clearance submission, reviewer queue, conflict of interest checks)
 - `test_resources.py`: 13 tests (search, category, status, building filters, sorting, pagination)
+- `test_reservations.py`: 22 tests (creation, intervals, overlap conflict detection, training clearance verification, maintenance status blocking, cancellation, lifecycle transitions, timestamps)

@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from app.core.config import settings
 from app.core.database import check_db_connection
-from app.routers import resources_router, auth_router, eligibility_router
+from app.routers import resources_router, auth_router, eligibility_router, reservations_router
 
 # Configure structured logging
 logging.basicConfig(
@@ -48,7 +48,7 @@ def root():
     return {
         "project": settings.PROJECT_NAME,
         "tagline": "Unlock Resources. Empower Innovation.",
-        "phase": "Phase 3: User Authentication & Role-Based Verification Engine",
+        "phase": "Phase 4: Resource Reservations & Custody Workflow",
         "docs": "/docs",
         "openapi": "/openapi.json",
         "api_v1": settings.API_V1_STR,
@@ -86,3 +86,4 @@ def health_check():
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(resources_router, prefix=settings.API_V1_STR)
 app.include_router(eligibility_router, prefix=settings.API_V1_STR)
+app.include_router(reservations_router, prefix=settings.API_V1_STR)

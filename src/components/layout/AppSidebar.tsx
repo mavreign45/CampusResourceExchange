@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   Compass,
   FileClock,
@@ -61,7 +61,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       id: 'clearances' as NavigationPage,
       label: 'My Clearances',
       icon: <Award className="w-4 h-4" />,
-      badge: 'Phase 3',
+      badge: 'Active',
       badgeColor: 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30',
       isUpcoming: false,
       visible: true,
@@ -105,26 +105,26 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       id: 'requests' as NavigationPage,
       label: 'My Requests',
       icon: <FileClock className="w-4 h-4" />,
-      badge: 'Phase 4',
-      badgeColor: 'bg-slate-800 text-slate-400 border border-slate-700/60',
-      isUpcoming: true,
+      badge: undefined,
+      badgeColor: '',
+      isUpcoming: false,
       visible: true,
     },
     {
       id: 'bookings' as NavigationPage,
       label: 'My Bookings',
       icon: <CalendarCheck className="w-4 h-4" />,
-      badge: 'Phase 4',
-      badgeColor: 'bg-slate-800 text-slate-400 border border-slate-700/60',
-      isUpcoming: true,
+      badge: undefined,
+      badgeColor: '',
+      isUpcoming: false,
       visible: true,
     },
     {
       id: 'dashboard' as NavigationPage,
       label: 'Lab Dashboard',
       icon: <LayoutDashboard className="w-4 h-4" />,
-      badge: 'Phase 6',
-      badgeColor: 'bg-slate-800 text-slate-400 border border-slate-700/60',
+      badge: undefined,
+      badgeColor: '',
       isUpcoming: true,
       visible: true,
     },
@@ -220,16 +220,16 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           })}
       </div>
 
-      {/* Phase 3 Badge footer */}
+      {/* Platform Status footer */}
       <div className="p-3.5 border-t border-slate-800/80 m-3 bg-slate-900/60 rounded-xl border border-slate-800">
         <div className="flex items-start gap-2.5">
           <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
           <div>
             <span className="text-xs font-semibold text-slate-200 block">
-              Phase 3 Live Platform
+              Campus Exchange Platform
             </span>
             <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
-              JWT Authentication & RBAC Training Verification active.
+              JWT Authentication & Training Verification active.
             </p>
           </div>
         </div>

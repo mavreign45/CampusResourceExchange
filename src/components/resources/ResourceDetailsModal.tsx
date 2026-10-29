@@ -9,7 +9,6 @@ import {
   Check,
   Package,
   FileText,
-  Info,
   Sparkles,
   Award,
   ArrowRight,
@@ -23,6 +22,7 @@ import { ImageWithFallback } from '../common/ImageWithFallback';
 import { useAuth } from '../../context/AuthContext';
 import { eligibilityService } from '../../services/eligibilityService';
 import { VerificationRequestModal } from '../eligibility/VerificationRequestModal';
+import { ReservationModal } from '../reservations/ReservationModal';
 
 interface ResourceDetailsModalProps {
   resource: Resource | null;
@@ -42,7 +42,7 @@ export const ResourceDetailsModal: React.FC<ResourceDetailsModalProps> = ({
   onOpenAuthModal,
 }) => {
   const { isAuthenticated } = useAuth();
-  const [showBookingNotice, setShowBookingNotice] = useState(false);
+  const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
   const [clearanceStatus, setClearanceStatus] = useState<
     'Verified' | 'Pending Review' | 'None'
   >('None');
@@ -95,11 +95,14 @@ export const ResourceDetailsModal: React.FC<ResourceDetailsModalProps> = ({
   if (!resource) return null;
 
   const handleRequestClick = () => {
-    setShowBookingNotice(true);
+    if (!isAuthenticated && onOpenAuthModal) {
+      onOpenAuthModal();
+      return;
+    }
+    setIsReservationModalOpen(true);
   };
 
   const handleClose = () => {
-    setShowBookingNotice(false);
     onClose();
   };
 
@@ -171,48 +174,13 @@ export const ResourceDetailsModal: React.FC<ResourceDetailsModalProps> = ({
                 onClick={handleRequestClick}
                 icon={<Sparkles className="w-4 h-4 text-cyan-400" />}
               >
-                Request Access
+                Request Reservation
               </Button>
             </div>
           </div>
         }
       >
         <div className="space-y-6">
-          {/* Phase Notice Banner when Request Access is clicked */}
-          {showBookingNotice && (
-            <div
-              className="p-4 rounded-xl bg-gradient-to-r from-cyan-50 via-campus-50 to-blue-50 border border-cyan-200 shadow-xs animate-in fade-in duration-200"
-              role="alert"
-            >
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-cyan-600 text-white rounded-lg shrink-0 mt-0.5">
-                  <Info className="w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-bold text-slate-900">
-                    Booking & Handover Workflow (Phase 4)
-                  </h4>
-                  <p className="text-xs text-slate-700 mt-1 leading-relaxed">
-                    <strong>Phase 3 Complete:</strong> Authentication, user roles, and training verification are live.
-                    Equipment booking reservations and custody handovers will be introduced in <strong>Phase 4</strong>.
-                  </p>
-                  <div className="mt-2.5 flex items-center gap-3">
-                    <span className="inline-flex items-center text-[11px] font-semibold text-cyan-800 bg-cyan-100/80 px-2 py-0.5 rounded-md">
-                      Coming in Phase 4
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setShowBookingNotice(false)}
-                      className="text-xs text-slate-500 hover:text-slate-800 underline font-medium"
-                    >
-                      Dismiss message
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Hero Visual & Key Meta */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
             {/* Image */}
@@ -279,7 +247,7 @@ export const ResourceDetailsModal: React.FC<ResourceDetailsModalProps> = ({
                 </h4>
               </div>
               <span className="text-[10px] text-cyan-800 font-semibold px-2 py-0.5 rounded bg-cyan-100/70">
-                Phase 3 RBAC
+                Access Policy
               </span>
             </div>
 
@@ -482,6 +450,14 @@ export const ResourceDetailsModal: React.FC<ResourceDetailsModalProps> = ({
         onSuccess={() => {
           setClearanceStatus('Pending Review');
         }}
+      />
+
+      {/* Reservation Booking Modal */}
+      <ReservationModal
+        resource={resource}
+        isOpen={isReservationModalOpen}
+        onClose={() => setIsReservationModalOpen(false)}
+        onOpenAuthModal={onOpenAuthModal}
       />
     </>
   );

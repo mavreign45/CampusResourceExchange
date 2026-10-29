@@ -6,6 +6,7 @@ import { DiscoverResources } from './pages/DiscoverResources';
 import { EligibilityDashboard } from './pages/EligibilityDashboard';
 import { VerificationReviewQueue } from './pages/VerificationReviewQueue';
 import { AdminUsersPage } from './pages/AdminUsersPage';
+import { MyRequestsPage } from './pages/MyRequestsPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { AuthModal } from './components/auth/AuthModal';
 import { AuthProvider } from './context/AuthContext';
@@ -136,10 +137,18 @@ function AppContent() {
 
             {currentPage === 'users' && <AdminUsersPage />}
 
+            {currentPage === 'requests' && (
+              <MyRequestsPage
+                onOpenAuthModal={() => handleOpenAuth('login')}
+                onNavigateToDiscover={() => setCurrentPage('discover')}
+              />
+            )}
+
             {currentPage !== 'discover' &&
               currentPage !== 'clearances' &&
               currentPage !== 'review_queue' &&
-              currentPage !== 'users' && (
+              currentPage !== 'users' &&
+              currentPage !== 'requests' && (
                 <PlaceholderPage
                   page={currentPage}
                   onNavigateToDiscover={() => setCurrentPage('discover')}
@@ -157,7 +166,7 @@ function AppContent() {
                 <strong>Campus Resource Exchange</strong> — Unlock Resources. Empower Innovation.
               </p>
               <p className="text-[11px] text-slate-400">
-                Phase 3 Full-Stack Platform • Authentication & Training Verification RBAC Live
+                Enterprise Academic Platform • Equipment Reservations &amp; Custody Oversight Live
               </p>
             </div>
           </footer>
