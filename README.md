@@ -37,8 +37,8 @@ Universities host cutting-edge instruments, camera packages, high-performance co
 - **Driver:** psycopg v3 (binary)
 - **Security:** bcrypt password hashing + PyJWT Bearer token authentication
 - **RBAC:** Reusable FastAPI dependencies (`get_current_user`, `require_roles`)
-- **Migrations:** Alembic (001, 002, 003)
-- **Testing:** pytest (56 unit and integration test cases)
+- **Migrations:** Alembic (001, 002, 003, 004)
+- **Testing:** pytest (69 unit and integration test cases)
 
 ---
 
@@ -65,12 +65,13 @@ CampusResourceExchange/
 │   │   │   ├── database.py        # SQLAlchemy engine, session maker, get_db
 │   │   │   ├── security.py        # Password hashing & JWT operations
 │   │   │   └── dependencies.py    # get_current_user, require_roles
-│   │   ├── models/                # User, EligibilityVerification, Resource, etc.
+│   │   ├── models/                # User, EligibilityVerification, Resource, Notification, etc.
 │   │   ├── schemas/               # Pydantic validation & response models
-│   │   ├── routers/               # auth.py, eligibility.py, resources.py, reservations.py
-│   │   └── services/              # auth_service.py, eligibility_service.py, resource_service.py, reservation_service.py
-│   ├── alembic/                   # Database migrations (001, 002, 003)
-│   ├── tests/                     # 56 pytest cases (test_auth, test_eligibility, test_resources, test_reservations)
+│   │   ├── routers/               # auth.py, eligibility.py, resources.py, reservations.py, notifications.py
+│   │   ├── services/              # auth_service.py, eligibility_service.py, resource_service.py, reservation_service.py, notification_service.py, automation_service.py
+│   │   └── cron_worker.py         # Standalone scheduled background automation runner
+│   ├── alembic/                   # Database migrations (001, 002, 003, 004)
+│   ├── tests/                     # 69 pytest cases (test_auth, test_eligibility, test_resources, test_reservations, test_notifications)
 │   ├── requirements.txt           # Python dependencies
 │   ├── .env.example               # Backend environment template
 │   └── README.md                  # Comprehensive backend documentation
@@ -79,15 +80,15 @@ CampusResourceExchange/
 │   │   ├── auth/                  # AuthModal (Sign In / Student Register / Demo shortcuts)
 │   │   ├── eligibility/           # VerificationRequestModal
 │   │   ├── reservations/          # ReservationModal, ReservationReviewTab
-│   │   ├── layout/                # AppSidebar, AppHeader, MobileNavigation
+│   │   ├── layout/                # AppSidebar, AppHeader (with Notification Center tray & badge), MobileNavigation
 │   │   ├── resources/             # ResourceCard, ResourceGrid, ResourceFilters,
 │   │   │                          # ResourceSearch, ResourceSummaryCards, ResourceDetailsModal
 │   │   └── ui/                    # Badge, Button, EmptyState, Modal
 │   ├── context/                   # AuthContext (user, token, role, quick login)
 │   ├── pages/                     # DiscoverResources, MyRequestsPage, EligibilityDashboard,
 │   │                              # VerificationReviewQueue, AdminUsersPage, PlaceholderPage
-│   ├── services/                  # api.ts, authService.ts, eligibilityService.ts, resourceService.ts, reservationService.ts
-│   ├── types/                     # auth.ts, resource.ts, reservation.ts
+│   ├── services/                  # api.ts, authService.ts, eligibilityService.ts, resourceService.ts, reservationService.ts, notificationService.ts
+│   ├── types/                     # auth.ts, resource.ts, reservation.ts, notification.ts
 │   ├── App.tsx                    # App shell with AuthProvider & role-based routing
 │   └── main.tsx                   # React root entry
 └── package.json
@@ -162,6 +163,26 @@ Overdue → Completed
 | `POST` | `/requests/{id}/collect` | Record equipment collection | Lab Custodian, Admin |
 | `POST` | `/requests/{id}/return` | Record equipment return | Lab Custodian, Admin |
 | `POST` | `/requests/{id}/complete` | Complete after return inspection | Lab Custodian, Admin |
+| `GET` | `/notifications` | Paginated user notifications | Authenticated (Self only) |
+| `GET` | `/notifications/unread-count` | Real-time badge unread counter | Authenticated (Self only) |
+| `PATCH` | `/notifications/{id}/read` | Mark individual notification as read | Authenticated (Owner only) |
+| `POST` | `/notifications/read-all` | Mark all user notifications as read | Authenticated (Self only) |
+| `POST` | `/notifications/automation/run` | Execute reminders & uncollected expiry | Admin, Lab Custodian |
+
+---
+
+## ⏰ Background Reservation Automation & Expiry Policy
+
+The automation engine (`app.services.automation_service`) can be run on a schedule or triggered by campus staff:
+- **Pickup Reminders:** Sent to requesters 24h before approved reservation start time.
+- **Return Reminders:** Sent to requesters 24h before collected equipment due return time.
+- **Overdue Detection:** Flags reservations past end date that remain in `Collected` or `Return Pending` status, notifying both requester and lab managers.
+- **Uncollected Expiry Policy:** Approved or Ready reservations where requester failed to collect equipment within 24 hours of start time are automatically cancelled, freeing up equipment in the catalog. Equipment in physical custody (`Collected`, `Return Pending`) is strictly immune from auto-cancellation.
+
+Execute standalone via cron:
+```bash
+python -m app.cron_worker
+```
 
 ---
 
@@ -171,7 +192,7 @@ Run backend tests:
 ```bash
 & "backend/.venv/Scripts/python.exe" -m pytest backend/tests -v
 ```
-All **56 tests** pass against an isolated test database (covers authentication, eligibility, resources, reservation conflict prevention, overlap detection, lifecycle transitions, and timestamps).
+All **69 tests** pass against an isolated test database (covers authentication, eligibility, resources, reservation lifecycle, conflict prevention, notifications, deduplication, and automation policies).
 
 Run frontend TypeScript check:
 ```bash

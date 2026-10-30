@@ -9,6 +9,7 @@ from app.models.eligibility import EligibilityVerification, VerificationStatus
 from app.models.user import User, UserRole
 from app.models.resource import Resource
 from app.schemas.eligibility import EligibilityRequestCreate, EligibilityReviewUpdate
+from app.services import notification_service
 
 logger = logging.getLogger(__name__)
 
@@ -161,4 +162,10 @@ class EligibilityService:
         logger.info(
             f"Reviewer '{reviewer.email}' (ID: {reviewer.id}) marked request {record.id} as '{record.status}'"
         )
+
+        try:
+            notification_service.notify_eligibility_reviewed(db, record)
+        except Exception as exc:
+            logger.warning(f"Failed to send eligibility review notification: {exc}")
+
         return record

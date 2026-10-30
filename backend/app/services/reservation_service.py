@@ -6,6 +6,7 @@ and RBAC enforcement live here; routers stay thin.
 """
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -18,6 +19,9 @@ from app.models.resource import Resource
 from app.models.user import User, UserRole
 from app.models.eligibility import EligibilityVerification, VerificationStatus
 from app.schemas.reservation import ReservationCreate, ReservationReviewUpdate
+from app.services import notification_service
+
+logger = logging.getLogger(__name__)
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -187,6 +191,12 @@ def create_reservation(
     db.add(reservation)
     db.commit()
     db.refresh(reservation)
+
+    try:
+        notification_service.notify_reservation_submitted(db, reservation)
+    except Exception as exc:
+        logger.warning(f"Failed to send submission notification: {exc}")
+
     return reservation
 
 
@@ -217,7 +227,14 @@ def cancel_reservation(
         ReservationStatus.PENDING.value,
         ReservationStatus.APPROVED.value,
     )
-    return _transition(r, cancellable, ReservationStatus.CANCELLED, db)
+    cancelled = _transition(r, cancellable, ReservationStatus.CANCELLED, db)
+
+    try:
+        notification_service.notify_reservation_cancelled(db, cancelled, current_user)
+    except Exception as exc:
+        logger.warning(f"Failed to send cancellation notification: {exc}")
+
+    return cancelled
 
 
 def get_review_queue(db: Session, reviewer: User) -> List[Reservation]:
@@ -262,6 +279,15 @@ def review_reservation(
         r.review_notes = payload.review_notes
     db.commit()
     db.refresh(r)
+
+    try:
+        if payload.status == ReservationStatus.APPROVED:
+            notification_service.notify_reservation_approved(db, r)
+        elif payload.status == ReservationStatus.REJECTED:
+            notification_service.notify_reservation_rejected(db, r)
+    except Exception as exc:
+        logger.warning(f"Failed to send review decision notification: {exc}")
+
     return r
 
 
@@ -270,12 +296,19 @@ def mark_ready_for_pickup(
 ) -> Reservation:
     _assert_reviewer(reviewer)
     r = _get_reservation_or_404(db, reservation_id)
-    return _transition(
+    updated = _transition(
         r,
         (ReservationStatus.APPROVED.value,),
         ReservationStatus.READY_FOR_PICKUP,
         db,
     )
+
+    try:
+        notification_service.notify_ready_for_pickup(db, updated)
+    except Exception as exc:
+        logger.warning(f"Failed to send ready for pickup notification: {exc}")
+
+    return updated
 
 
 def mark_collected(
@@ -313,9 +346,16 @@ def mark_completed(
     r = _get_reservation_or_404(db, reservation_id)
     if not r.returned_at:
         r.returned_at = datetime.now(timezone.utc)
-    return _transition(
+    updated = _transition(
         r,
         (ReservationStatus.RETURN_PENDING.value, ReservationStatus.OVERDUE.value),
         ReservationStatus.COMPLETED,
         db,
     )
+
+    try:
+        notification_service.notify_reservation_completed(db, updated)
+    except Exception as exc:
+        logger.warning(f"Failed to send completion notification: {exc}")
+
+    return updated

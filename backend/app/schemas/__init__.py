@@ -21,6 +21,12 @@ from app.schemas.eligibility import (
     EligibilityReviewUpdate,
     EligibilityRead,
 )
+from app.schemas.notification import (
+    NotificationRead,
+    NotificationListResponse,
+    UnreadCountResponse,
+    NotificationReadUpdate,
+)
 
 __all__ = [
     "CategoryBase",
@@ -46,4 +52,8 @@ __all__ = [
     "EligibilityRequestCreate",
     "EligibilityReviewUpdate",
     "EligibilityRead",
+    "NotificationRead",
+    "NotificationListResponse",
+    "UnreadCountResponse",
+    "NotificationReadUpdate",
 ]

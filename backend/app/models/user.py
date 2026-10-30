@@ -51,5 +51,13 @@ class User(Base):
         foreign_keys="Reservation.reviewed_by",
     )
 
+    # Notification relationships
+    notifications = relationship(
+        "Notification",
+        back_populates="recipient",
+        foreign_keys="Notification.recipient_id",
+        cascade="all, delete-orphan",
+    )
+
     def __repr__(self) -> str:
         return f"<User id={self.id} email='{self.email}' role='{self.role}'>"

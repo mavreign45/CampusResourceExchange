@@ -5,6 +5,7 @@ from app.models.resource import Resource
 from app.models.user import User, UserRole
 from app.models.eligibility import EligibilityVerification, VerificationStatus
 from app.models.reservation import Reservation, ReservationStatus, BLOCKING_STATUSES
+from app.models.notification import Notification, NotificationType
 
 __all__ = [
     "Category",
@@ -18,4 +19,6 @@ __all__ = [
     "Reservation",
     "ReservationStatus",
     "BLOCKING_STATUSES",
+    "Notification",
+    "NotificationType",
 ]

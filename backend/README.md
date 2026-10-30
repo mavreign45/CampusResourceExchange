@@ -1,6 +1,6 @@
-# Campus Resource Exchange — Backend (Phase 3)
+# Campus Resource Exchange — Backend (Phase 5)
 
-> **FastAPI + PostgreSQL + SQLAlchemy 2.x + Alembic + JWT Auth & RBAC**
+> **FastAPI + PostgreSQL + SQLAlchemy 2.x + Alembic + JWT Auth & RBAC + Notifications & Automation**
 
 ---
 
@@ -25,7 +25,7 @@ The platform enforces trusted access governance: high-precision equipment requir
 - **Security & Cryptography:** [bcrypt](https://pypi.org/project/bcrypt/) (salt + hashing) + [PyJWT](https://pyjwt.readthedocs.io/) (JWT tokens)
 - **Validation:** [Pydantic v2](https://docs.pydantic.dev/) + [email-validator](https://pypi.org/project/email-validator/) + [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
 - **Database Migrations:** [Alembic](https://alembic.sqlalchemy.org/en/latest/)
-- **Automated Testing:** [pytest](https://docs.pytest.org/) (34 unit and integration tests)
+- **Automated Testing:** [pytest](https://docs.pytest.org/) (69 unit and integration tests)
 
 ---
 
@@ -77,7 +77,9 @@ backend/
 │   │   ├── category.py            # Category table
 │   │   ├── location.py            # Location table
 │   │   ├── custodian.py           # Custodian table
-│   │   └── resource.py            # Resource table with foreign keys & relationships
+│   │   ├── resource.py            # Resource table with foreign keys & relationships
+│   │   ├── reservation.py         # Reservation table and status enum
+│   │   └── notification.py        # Notification table and NotificationType enum
 │   ├── schemas/                   # Pydantic serialization & request/response schemas
 │   │   ├── __init__.py
 │   │   ├── user.py                # UserRegister, UserLogin, UserRead, TokenResponse
@@ -85,29 +87,41 @@ backend/
 │   │   ├── category.py            # CategoryRead
 │   │   ├── location.py            # LocationRead
 │   │   ├── custodian.py           # CustodianRead
-│   │   └── resource.py            # ResourceRead, ResourceListResponse, ResourceSummaryResponse
+│   │   ├── resource.py            # ResourceRead, ResourceListResponse, ResourceSummaryResponse
+│   │   ├── reservation.py         # ReservationCreate, ReservationRead, ReservationReview
+│   │   └── notification.py        # NotificationRead, NotificationListResponse, UnreadCountResponse
 │   ├── routers/                   # API route handlers
 │   │   ├── __init__.py
 │   │   ├── auth.py                # /auth/register, /auth/login, /auth/me, /auth/users
 │   │   ├── eligibility.py         # /eligibility/me, /eligibility/requests, /requirements
-│   │   └── resources.py           # GET /resources, /summary, /{id}
-│   └── services/
-│       ├── __init__.py
-│       ├── auth_service.py        # Registration normalization, login, admin bootstrap
-│       ├── eligibility_service.py # Training requests, reviewer queue, conflict checks
-│       └── resource_service.py    # Query building, combined filters, sorting, pagination
+│   │   ├── resources.py           # GET /resources, /summary, /{id}
+│   │   ├── reservations.py        # /requests (POST, me, review-queue, lifecycle actions)
+│   │   └── notifications.py       # /notifications (GET, /unread-count, mark read, automation)
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── auth_service.py        # Registration normalization, login, admin bootstrap
+│   │   ├── eligibility_service.py # Training requests, reviewer queue, conflict checks
+│   │   ├── resource_service.py    # Query building, combined filters, sorting, pagination
+│   │   ├── reservation_service.py # Reservation creation, overlap validation, custody lifecycle
+│   │   ├── notification_service.py# In-app notification creation, deduplication, read tracking
+│   │   └── automation_service.py  # Reminders, overdue detection, 24h uncollected expiry
+│   └── cron_worker.py             # CLI runner for background scheduled jobs
 ├── alembic/
 │   ├── env.py
 │   ├── script.py.mako
 │   └── versions/
 │       ├── 001_initial_schema.py      # Category, Location, Custodian, Resource
-│       └── 002_auth_and_eligibility.py # User and EligibilityVerification tables
+│       ├── 002_auth_and_eligibility.py # User and EligibilityVerification tables
+│       ├── 003_reservations.py        # Reservation table, indexes, enum
+│       └── 004_notifications.py       # Notification table, indexes, NotificationType enum
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py                # Test fixtures with isolated SQLite in-memory DB
 │   ├── test_auth.py               # 12 authentication and RBAC tests
 │   ├── test_eligibility.py        # 9 training verification and review tests
-│   └── test_resources.py          # 13 resource catalog and filter tests
+│   ├── test_resources.py          # 13 resource catalog and filter tests
+│   ├── test_reservations.py       # 22 reservation lifecycle and conflict tests
+│   └── test_notifications.py      # 13 notifications, deduplication, and automation tests
 ├── requirements.txt
 ├── .env.example
 ├── alembic.ini
@@ -218,6 +232,29 @@ Interactive API documentation will be available at:
 | `POST` | `/api/v1/requests/{id}/return` | Custodian / Admin | Record equipment return (`Collected` → `Return Pending`) |
 | `POST` | `/api/v1/requests/{id}/complete` | Custodian / Admin | Complete reservation after inspection (`Return Pending` → `Completed`) |
 
+### 🔔 Notifications & Automation (`/api/v1/notifications`)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/notifications` | Authenticated | Paginated notifications list for current user (optional `unread_only=true`) |
+| `GET` | `/api/v1/notifications/unread-count` | Authenticated | Real-time counter of unread notifications |
+| `PATCH` | `/api/v1/notifications/{id}/read` | Authenticated | Mark notification as read (Strictly enforces owner-only access) |
+| `POST` | `/api/v1/notifications/read-all` | Authenticated | Mark all notifications for current user as read |
+| `POST` | `/api/v1/notifications/automation/run` | Custodian / Admin | Trigger reminders, overdue checks, and 24h uncollected expiry policy |
+
+---
+
+## ⏰ Background Scheduled Automation & Cron Worker
+
+To execute scheduled automation tasks outside the web process:
+```bash
+python -m app.cron_worker
+```
+Automation policies handled:
+1. **Pickup Reminders:** Triggered 24 hours prior to reservation start time for `Approved` and `Ready for Pickup` bookings.
+2. **Return Reminders:** Triggered 24 hours prior to return deadline for `Collected` equipment.
+3. **Overdue Detection:** Automatically transitions reservations to `Overdue` if past `end_time` and notifies requester and lab managers.
+4. **Auto-Cancellation for Uncollected Equipment:** If an `Approved` or `Ready for Pickup` reservation is not collected after a 24-hour grace window from `start_time`, it is marked `Cancelled` and the resource is made immediately available for others. Equipment physically in custody (`Collected`, `Return Pending`) is strictly immune from auto-cancellation.
+
 ---
 
 ## 🧪 Automated Testing
@@ -227,8 +264,9 @@ Run the full pytest suite:
 & "backend/.venv/Scripts/python.exe" -m pytest backend/tests -v
 ```
 
-All **56 tests** run in an isolated in-memory SQLite database:
+All **69 tests** run in an isolated in-memory SQLite database:
 - `test_auth.py`: 12 tests (registration, role assignment safety, hashing, JWT expiration, admin RBAC)
 - `test_eligibility.py`: 9 tests (clearance submission, reviewer queue, conflict of interest checks)
 - `test_resources.py`: 13 tests (search, category, status, building filters, sorting, pagination)
 - `test_reservations.py`: 22 tests (creation, intervals, overlap conflict detection, training clearance verification, maintenance status blocking, cancellation, lifecycle transitions, timestamps)
+- `test_notifications.py`: 13 tests (notification creation, privacy isolation, mark-read, mark-all-read, deduplication, reservation & eligibility event triggers, pickup/return reminders, overdue detection, 24h uncollected expiry policy, collected asset immunity, automation RBAC)
