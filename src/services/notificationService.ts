@@ -49,4 +49,19 @@ export const notificationService = {
       method: 'POST',
     });
   },
+
+  /**
+   * Run background reservation reminders, overdue processing, and expiry automation.
+   */
+  async runAutomation(): Promise<{
+    timestamp: string;
+    pickup_reminders_sent: number;
+    return_reminders_sent: number;
+    overdue_marked: number;
+    expired_uncollected_cancelled: number;
+  }> {
+    return apiClient('/notifications/automation/run', {
+      method: 'POST',
+    });
+  },
 };

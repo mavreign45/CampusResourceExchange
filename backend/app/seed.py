@@ -6,13 +6,19 @@ Idempotent: safe to run multiple times without creating duplicates.
 
 import sys
 import logging
-from sqlalchemy import select
+from datetime import datetime, timezone, timedelta
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal, engine, Base
+from app.core.security import hash_password
 from app.models.category import Category
 from app.models.location import Location
 from app.models.custodian import Custodian
 from app.models.resource import Resource
+from app.models.user import User, UserRole
+from app.models.eligibility import EligibilityVerification, VerificationStatus
+from app.models.reservation import Reservation, ReservationStatus
+from app.models.notification import Notification, NotificationType
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("seed")
@@ -736,6 +742,9 @@ def seed_database(db: Session = None):
         if bootstrapped:
             logger.info(f"Bootstrap administrator confirmed: {bootstrapped.email}")
 
+        # Phase 6: Seed realistic demonstration personas, clearances, reservations, and notifications
+        seed_demo_personas_and_workflows(db)
+
     except Exception as e:
         db.rollback()
         logger.error(f"Seeding failed: {e}")
@@ -743,6 +752,230 @@ def seed_database(db: Session = None):
     finally:
         if close_after:
             db.close()
+
+
+def seed_demo_personas_and_workflows(db: Session) -> None:
+    """
+    Seeds realistic demonstration personas, clearances, reservations, and notifications.
+    Idempotent: safe to run multiple times.
+    """
+    logger.info("Checking and seeding demonstration personas...")
+    now = datetime.now(timezone.utc)
+    demo_password_hash = hash_password("Password123!")
+
+    # 1. Admin Persona
+    admin = db.scalar(select(User).where(User.email == "admin@university.edu"))
+    if not admin:
+        admin = User(
+            full_name="Campus Administrator",
+            email="admin@university.edu",
+            hashed_password=demo_password_hash,
+            role=UserRole.ADMIN.value,
+            department="Office of Research & Equipment Oversight",
+            is_active=True,
+        )
+        db.add(admin)
+        db.flush()
+        logger.info(f"  + Created demo admin: {admin.email}")
+
+    # 2. Custodian Persona
+    custodian = db.scalar(select(User).where(User.email == "custodian.vance@university.edu"))
+    if not custodian:
+        custodian = User(
+            full_name="Dr. Marcus Vance",
+            email="custodian.vance@university.edu",
+            hashed_password=demo_password_hash,
+            role=UserRole.CUSTODIAN.value,
+            department="Signals & Systems Prototyping Laboratory",
+            is_active=True,
+        )
+        db.add(custodian)
+        db.flush()
+        logger.info(f"  + Created demo custodian: {custodian.email}")
+
+    # 3. Student Persona
+    student = db.scalar(select(User).where(User.email == "sarah.student@university.edu"))
+    if not student:
+        student = User(
+            full_name="Sarah Chen",
+            email="sarah.student@university.edu",
+            hashed_password=demo_password_hash,
+            role=UserRole.STUDENT.value,
+            department="Department of Electrical Engineering",
+            student_id="EE-2026-441",
+            is_active=True,
+        )
+        db.add(student)
+        db.flush()
+        logger.info(f"  + Created demo student: {student.email}")
+
+    db.commit()
+
+    # 4. Clearances for Sarah Chen
+    existing_verif = db.scalar(
+        select(EligibilityVerification).where(
+            EligibilityVerification.user_id == student.id,
+            EligibilityVerification.requirement_type == "Laser Safety Certification",
+        )
+    )
+    if not existing_verif:
+        v1 = EligibilityVerification(
+            user_id=student.id,
+            requirement_type="Laser Safety Certification",
+            status=VerificationStatus.VERIFIED.value,
+            evidence_details="Completed EH&S Laser Safety Module 4 & In-Person Eyewear Alignment Check.",
+            submitted_at=now - timedelta(days=14),
+            reviewed_by=custodian.id,
+            reviewed_at=now - timedelta(days=12),
+            review_notes="Verified against university Environmental Health & Safety registry.",
+        )
+        v2 = EligibilityVerification(
+            user_id=student.id,
+            requirement_type="Machine Shop Clearance",
+            status=VerificationStatus.PENDING.value,
+            evidence_details="Passed online quiz and attended preliminary mill & lathe workshop.",
+            submitted_at=now - timedelta(hours=6),
+        )
+        db.add_all([v1, v2])
+        db.commit()
+        logger.info(f"  + Seeded eligibility records for {student.email}")
+
+    # 5. Demonstration Reservations Across the Lifecycle
+    # Query actual seeded resources
+    all_resources = list(db.scalars(select(Resource).order_by(Resource.id.asc())).all())
+    res_scope = all_resources[0] if len(all_resources) > 0 else None
+    res_camera = all_resources[1] if len(all_resources) > 1 else None
+    res_printer = all_resources[2] if len(all_resources) > 2 else None
+    res_compute = all_resources[3] if len(all_resources) > 3 else None
+
+    existing_res_count = db.scalar(
+        select(func.count(Reservation.id)).where(Reservation.requester_id == student.id)
+    )
+    if (existing_res_count or 0) < 3 and res_scope and res_camera and res_printer and res_compute:
+        # A. Pending Reservation (For custodian review/approval demo)
+        r_pending = Reservation(
+            resource_id=res_scope.id,
+            requester_id=student.id,
+            start_at=now + timedelta(days=1, hours=2),
+            end_at=now + timedelta(days=1, hours=6),
+            status=ReservationStatus.PENDING.value,
+            purpose="ECE 441 Senior Capstone: High-frequency RF signal analysis for antenna array.",
+            submitted_at=now - timedelta(hours=2),
+        )
+
+        # B. Approved Reservation (For ready-for-pickup demo)
+        r_approved = Reservation(
+            resource_id=res_camera.id,
+            requester_id=student.id,
+            start_at=now + timedelta(hours=4),
+            end_at=now + timedelta(hours=8),
+            status=ReservationStatus.APPROVED.value,
+            purpose="Documentary footage of university robotics competition teams.",
+            submitted_at=now - timedelta(days=1),
+            reviewed_by=custodian.id,
+            reviewed_at=now - timedelta(hours=10),
+            approved_at=now - timedelta(hours=10),
+            review_notes="Approved for student union media coverage.",
+        )
+
+        # C. Active Loan: Collected (For return & inspection demo)
+        r_collected = Reservation(
+            resource_id=res_printer.id,
+            requester_id=student.id,
+            start_at=now - timedelta(hours=5),
+            end_at=now + timedelta(hours=19),
+            status=ReservationStatus.COLLECTED.value,
+            purpose="Prototyping lightweight robotic gripper fingers in carbon-fiber filament.",
+            submitted_at=now - timedelta(days=2),
+            reviewed_by=custodian.id,
+            reviewed_at=now - timedelta(days=1),
+            approved_at=now - timedelta(days=1),
+            collected_at=now - timedelta(hours=5),
+            review_notes="Equipment inspected and checked out with spare nozzle pack.",
+        )
+        res_printer.availability_status = "in_use"
+
+        # D. Completed Reservation (History)
+        r_completed = Reservation(
+            resource_id=res_compute.id,
+            requester_id=student.id,
+            start_at=now - timedelta(days=5),
+            end_at=now - timedelta(days=4),
+            status=ReservationStatus.COMPLETED.value,
+            purpose="Benchmarking distributed reinforcement learning algorithms.",
+            submitted_at=now - timedelta(days=6),
+            reviewed_by=admin.id,
+            reviewed_at=now - timedelta(days=5),
+            approved_at=now - timedelta(days=5),
+            collected_at=now - timedelta(days=5),
+            returned_at=now - timedelta(days=4),
+            review_notes="Returned in excellent condition. All data purged according to policy.",
+        )
+
+        db.add_all([r_pending, r_approved, r_collected, r_completed])
+        db.commit()
+        logger.info(f"  + Seeded 4 demonstration reservations across the lifecycle.")
+
+    # 6. Notifications for student & custodian
+    student_notifs = db.scalar(
+        select(func.count(Notification.id)).where(Notification.recipient_id == student.id)
+    )
+    if (student_notifs or 0) == 0:
+        n1 = Notification(
+            recipient_id=student.id,
+            notification_type=NotificationType.RESERVATION_APPROVED.value,
+            title="Reservation Request Approved",
+            message="Your booking request for Sony Cinema Camera FX6 Package has been approved by Dr. Marcus Vance.",
+            entity_type="reservation",
+            is_read=False,
+            created_at=now - timedelta(hours=10),
+        )
+        n2 = Notification(
+            recipient_id=student.id,
+            notification_type=NotificationType.ELIGIBILITY_VERIFIED.value,
+            title="Training Clearance Verified",
+            message="Your documentation for Laser Safety Certification was verified by Dr. Marcus Vance.",
+            entity_type="eligibility",
+            is_read=True,
+            created_at=now - timedelta(days=12),
+        )
+        n3 = Notification(
+            recipient_id=student.id,
+            notification_type=NotificationType.PICKUP_REMINDER.value,
+            title="Upcoming Equipment Pickup",
+            message="Reminder: Your reservation window starts in 4 hours. Equipment is available at Media Arts Center (Depot B-12).",
+            entity_type="reservation",
+            is_read=False,
+            created_at=now - timedelta(hours=1),
+        )
+        db.add_all([n1, n2, n3])
+
+    custodian_notifs = db.scalar(
+        select(func.count(Notification.id)).where(Notification.recipient_id == custodian.id)
+    )
+    if (custodian_notifs or 0) == 0:
+        c1 = Notification(
+            recipient_id=custodian.id,
+            notification_type=NotificationType.RESERVATION_SUBMITTED.value,
+            title="New Equipment Reservation Submitted",
+            message="Sarah Chen submitted a reservation request for Rohde & Schwarz 1 GHz Oscilloscope.",
+            entity_type="reservation",
+            is_read=False,
+            created_at=now - timedelta(hours=2),
+        )
+        c2 = Notification(
+            recipient_id=custodian.id,
+            notification_type=NotificationType.ELIGIBILITY_SUBMITTED.value,
+            title="New Safety Clearance Application",
+            message="Sarah Chen submitted safety clearance documentation for Machine Shop Clearance.",
+            entity_type="eligibility",
+            is_read=False,
+            created_at=now - timedelta(hours=6),
+        )
+        db.add_all([c1, c2])
+
+    db.commit()
+    logger.info("Demonstration personas, reservations, and notifications confirmed.")
 
 
 if __name__ == "__main__":

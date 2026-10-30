@@ -54,7 +54,7 @@ def root():
     return {
         "project": settings.PROJECT_NAME,
         "tagline": "Unlock Resources. Empower Innovation.",
-        "phase": "Phase 5: Notifications & Reservation Automation",
+        "phase": "Phase 6: Final Integration, Quality Assurance & Production Readiness",
         "docs": "/docs",
         "openapi": "/openapi.json",
         "api_v1": settings.API_V1_STR,

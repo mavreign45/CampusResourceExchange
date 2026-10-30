@@ -4,6 +4,7 @@ from app.schemas.custodian import CustodianBase, CustodianCreate, CustodianRead
 from app.schemas.resource import (
     ResourceBase,
     ResourceCreate,
+    ResourceUpdate,
     ResourceRead,
     ResourceListResponse,
     ResourceSummaryResponse,
@@ -40,6 +41,7 @@ __all__ = [
     "CustodianRead",
     "ResourceBase",
     "ResourceCreate",
+    "ResourceUpdate",
     "ResourceRead",
     "ResourceListResponse",
     "ResourceSummaryResponse",

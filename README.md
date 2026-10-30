@@ -24,9 +24,11 @@ Universities host cutting-edge instruments, camera packages, high-performance co
   - Resource Discovery Catalog & Filter Controls
   - Interactive "Reserve Resource" Booking Workflow & Conflict Prevention
   - "My Requests" Tracking Dashboard with Real-Time Custody Status
-  - Custodian & Admin "Review Queue" for Approvals, Pickups, and Returns
+  - Custodian & Admin "Review Queue" with Real-Time Status Filters (Pending, Approved, Ready, Active, Overdue)
+  - Custodian & Department "Lab Command Dashboard" with Active Borrower Custody Oversight & Automation Trigger
   - "My Clearances" Training & Safety Verification Dashboard
   - Administrator User & Role Management Table
+  - "Settings & Identity" Profile, Safety Credentials & Backend Health Diagnostics
   - Bookmarked / Saved Resources View
 
 ### Backend (FastAPI + PostgreSQL + SQLAlchemy)
@@ -38,7 +40,7 @@ Universities host cutting-edge instruments, camera packages, high-performance co
 - **Security:** bcrypt password hashing + PyJWT Bearer token authentication
 - **RBAC:** Reusable FastAPI dependencies (`get_current_user`, `require_roles`)
 - **Migrations:** Alembic (001, 002, 003, 004)
-- **Testing:** pytest (69 unit and integration test cases)
+- **Testing:** pytest (78 unit and integration test cases)
 
 ---
 
@@ -71,7 +73,7 @@ CampusResourceExchange/
 │   │   ├── services/              # auth_service.py, eligibility_service.py, resource_service.py, reservation_service.py, notification_service.py, automation_service.py
 │   │   └── cron_worker.py         # Standalone scheduled background automation runner
 │   ├── alembic/                   # Database migrations (001, 002, 003, 004)
-│   ├── tests/                     # 69 pytest cases (test_auth, test_eligibility, test_resources, test_reservations, test_notifications)
+│   ├── tests/                     # 78 pytest cases (test_auth, test_eligibility, test_resources, test_reservations, test_notifications, test_phase6_integration)
 │   ├── requirements.txt           # Python dependencies
 │   ├── .env.example               # Backend environment template
 │   └── README.md                  # Comprehensive backend documentation
@@ -79,14 +81,14 @@ CampusResourceExchange/
 │   ├── components/
 │   │   ├── auth/                  # AuthModal (Sign In / Student Register / Demo shortcuts)
 │   │   ├── eligibility/           # VerificationRequestModal
-│   │   ├── reservations/          # ReservationModal, ReservationReviewTab
+│   │   ├── reservations/          # ReservationModal, ReservationReviewTab (with status filter tabs)
 │   │   ├── layout/                # AppSidebar, AppHeader (with Notification Center tray & badge), MobileNavigation
 │   │   ├── resources/             # ResourceCard, ResourceGrid, ResourceFilters,
 │   │   │                          # ResourceSearch, ResourceSummaryCards, ResourceDetailsModal
 │   │   └── ui/                    # Badge, Button, EmptyState, Modal
 │   ├── context/                   # AuthContext (user, token, role, quick login)
 │   ├── pages/                     # DiscoverResources, MyRequestsPage, EligibilityDashboard,
-│   │                              # VerificationReviewQueue, AdminUsersPage, PlaceholderPage
+│   │                              # VerificationReviewQueue, LabDashboardPage, SettingsPage, AdminUsersPage
 │   ├── services/                  # api.ts, authService.ts, eligibilityService.ts, resourceService.ts, reservationService.ts, notificationService.ts
 │   ├── types/                     # auth.ts, resource.ts, reservation.ts, notification.ts
 │   ├── App.tsx                    # App shell with AuthProvider & role-based routing
@@ -153,29 +155,48 @@ Overdue → Completed
 ### Endpoints (Base `/api/v1`)
 | Method | Endpoint | Description | Permissions |
 |--------|----------|-------------|-------------|
+| `GET` | `/resources` | Filtered, sorted, paginated resource catalog | Public |
+| `GET` | `/resources/summary` | Live counts (total, available, in_use, maintenance) | Public |
+| `GET` | `/resources/{id}` | Detailed resource specifications | Public |
+| `PATCH` | `/resources/{id}` | Update resource status, condition, or details | Lab Custodian, Admin |
 | `POST` | `/requests` | Create reservation request | Authenticated (Verified clearance if required) |
 | `GET` | `/requests/me` | List current user's reservations | Authenticated |
-| `GET` | `/requests/review-queue` | List pending requests | Lab Custodian, Admin |
+| `GET` | `/requests/review-queue` | List requests by status (`?status=Pending/Approved/All`) | Lab Custodian, Admin |
 | `GET` | `/requests/{id}` | Get single reservation details | Requester, Lab Custodian, Admin |
 | `POST` | `/requests/{id}/cancel` | Cancel reservation | Requester, Admin (Pending/Approved only) |
 | `PATCH` | `/requests/{id}/review` | Approve or Reject with notes | Lab Custodian, Admin (No self-review) |
 | `POST` | `/requests/{id}/ready` | Mark Ready for Pickup | Lab Custodian, Admin |
-| `POST` | `/requests/{id}/collect` | Record equipment collection | Lab Custodian, Admin |
+| `POST` | `/requests/{id}/collect` | Record equipment collection (sets status to `in_use`) | Lab Custodian, Admin |
 | `POST` | `/requests/{id}/return` | Record equipment return | Lab Custodian, Admin |
-| `POST` | `/requests/{id}/complete` | Complete after return inspection | Lab Custodian, Admin |
+| `POST` | `/requests/{id}/complete` | Complete after return inspection (restores to `available`) | Lab Custodian, Admin |
 | `GET` | `/notifications` | Paginated user notifications | Authenticated (Self only) |
 | `GET` | `/notifications/unread-count` | Real-time badge unread counter | Authenticated (Self only) |
 | `PATCH` | `/notifications/{id}/read` | Mark individual notification as read | Authenticated (Owner only) |
 | `POST` | `/notifications/read-all` | Mark all user notifications as read | Authenticated (Self only) |
 | `POST` | `/notifications/automation/run` | Execute reminders & uncollected expiry | Admin, Lab Custodian |
+| `GET` | `/health` | API & database health diagnostics | Public |
+
+---
+
+## 👥 Demonstration Personas & Seed Data
+
+The database includes pre-configured, database-backed demonstration personas (password for all: `Password123!`):
+
+| Persona | Email | Role | Features Demonstrated |
+|---|---|---|---|
+| **Sarah Chen** | `sarah.student@university.edu` | Student | Catalog discovery, clearance badges, active borrow loans, notifications |
+| **Dr. Marcus Vance** | `custodian.vance@university.edu` | Lab Custodian | Lab command dashboard, resource management, approvals, handovers, returns |
+| **Campus Admin** | `admin@university.edu` | Admin | Institutional oversight, user role management, system diagnostics |
+
+One-click sign-in shortcuts for each persona are built directly into the UI Sign In modal.
 
 ---
 
 ## ⏰ Background Reservation Automation & Expiry Policy
 
 The automation engine (`app.services.automation_service`) can be run on a schedule or triggered by campus staff:
-- **Pickup Reminders:** Sent to requesters 24h before approved reservation start time.
-- **Return Reminders:** Sent to requesters 24h before collected equipment due return time.
+- **Pickup Reminders:** Sent to requesters 2h before approved reservation start time.
+- **Return Reminders:** Sent to requesters 2h before collected equipment due return time.
 - **Overdue Detection:** Flags reservations past end date that remain in `Collected` or `Return Pending` status, notifying both requester and lab managers.
 - **Uncollected Expiry Policy:** Approved or Ready reservations where requester failed to collect equipment within 24 hours of start time are automatically cancelled, freeing up equipment in the catalog. Equipment in physical custody (`Collected`, `Return Pending`) is strictly immune from auto-cancellation.
 
@@ -192,9 +213,9 @@ Run backend tests:
 ```bash
 & "backend/.venv/Scripts/python.exe" -m pytest backend/tests -v
 ```
-All **69 tests** pass against an isolated test database (covers authentication, eligibility, resources, reservation lifecycle, conflict prevention, notifications, deduplication, and automation policies).
+All **78 tests** pass against an isolated test database (covers authentication, eligibility, resources, reservation lifecycle, conflict prevention, notifications, deduplication, catalog synchronization, and automation policies).
 
-Run frontend TypeScript check:
+Run frontend production build & TypeScript check:
 ```bash
-npx tsc --noEmit
+npm run build
 ```

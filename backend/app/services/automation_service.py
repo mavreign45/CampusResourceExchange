@@ -173,6 +173,8 @@ def process_expired_uncollected(
     count = 0
     for r in abandoned:
         r.status = ReservationStatus.CANCELLED.value
+        if r.resource:
+            r.resource.availability_status = "available"
         expiry_note = f"[Auto-Cancelled: Uncollected after {expiry_hours}h grace period]"
         r.review_notes = f"{r.review_notes}\n{expiry_note}" if r.review_notes else expiry_note
         db.commit()

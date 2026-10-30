@@ -3,10 +3,13 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
+from app.core.dependencies import require_roles
+from app.models.user import User, UserRole
 from app.schemas.resource import (
     ResourceRead,
     ResourceListResponse,
     ResourceSummaryResponse,
+    ResourceUpdate,
 )
 from app.services.resource_service import ResourceService
 
@@ -118,3 +121,28 @@ def get_resource(
             detail=f"Resource with ID '{id}' was not found in the campus catalog.",
         )
     return resource
+
+
+@router.patch(
+    "/{id}",
+    response_model=ResourceRead,
+    summary="Update resource attributes",
+    description="Update resource status, description, or maintenance flag. Requires Lab Custodian or Admin role.",
+)
+def update_resource(
+    id: str,
+    payload: ResourceUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.CUSTODIAN, UserRole.ADMIN)),
+) -> ResourceRead:
+    updated = ResourceService.update_resource(
+        db=db,
+        resource_id=id,
+        payload_data=payload.model_dump(exclude_unset=True),
+    )
+    if not updated:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Resource with ID '{id}' was not found.",
+        )
+    return updated

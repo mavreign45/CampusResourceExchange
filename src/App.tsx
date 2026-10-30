@@ -7,6 +7,8 @@ import { EligibilityDashboard } from './pages/EligibilityDashboard';
 import { VerificationReviewQueue } from './pages/VerificationReviewQueue';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { MyRequestsPage } from './pages/MyRequestsPage';
+import { LabDashboardPage } from './pages/LabDashboardPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { AuthModal } from './components/auth/AuthModal';
 import { AuthProvider } from './context/AuthContext';
@@ -20,6 +22,7 @@ function AppContent() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
+  const [reviewQueueTab, setReviewQueueTab] = useState<'reservations' | 'clearances'>('reservations');
 
   // Saved resources set persisted in localStorage
   const [savedResourceIds, setSavedResourceIds] = useState<Set<string>>(() => {
@@ -133,30 +136,45 @@ function AppContent() {
               />
             )}
 
-            {currentPage === 'review_queue' && <VerificationReviewQueue />}
+            {currentPage === 'review_queue' && (
+              <VerificationReviewQueue initialTab={reviewQueueTab} />
+            )}
 
             {currentPage === 'users' && <AdminUsersPage />}
 
-            {currentPage === 'requests' && (
+            {(currentPage === 'requests' || currentPage === 'bookings') && (
               <MyRequestsPage
                 onOpenAuthModal={() => handleOpenAuth('login')}
                 onNavigateToDiscover={() => setCurrentPage('discover')}
               />
             )}
 
-            {currentPage !== 'discover' &&
-              currentPage !== 'clearances' &&
-              currentPage !== 'review_queue' &&
-              currentPage !== 'users' &&
-              currentPage !== 'requests' && (
-                <PlaceholderPage
-                  page={currentPage}
-                  onNavigateToDiscover={() => setCurrentPage('discover')}
-                  savedResources={savedResourcesList}
-                  savedResourceIds={savedResourceIds}
-                  onToggleSaveResource={handleToggleSave}
-                />
-              )}
+            {currentPage === 'dashboard' && (
+              <LabDashboardPage
+                onNavigateToReviewQueue={(tab) => {
+                  setReviewQueueTab(tab || 'reservations');
+                  setCurrentPage('review_queue');
+                }}
+                onNavigateToDiscover={() => setCurrentPage('discover')}
+              />
+            )}
+
+            {currentPage === 'settings' && (
+              <SettingsPage
+                onOpenAuthModal={() => handleOpenAuth('login')}
+                onNavigateToClearances={() => setCurrentPage('clearances')}
+              />
+            )}
+
+            {currentPage === 'saved' && (
+              <PlaceholderPage
+                page="saved"
+                onNavigateToDiscover={() => setCurrentPage('discover')}
+                savedResources={savedResourcesList}
+                savedResourceIds={savedResourceIds}
+                onToggleSaveResource={handleToggleSave}
+              />
+            )}
           </main>
 
           {/* Clean App Footer */}

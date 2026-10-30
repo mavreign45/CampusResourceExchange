@@ -42,8 +42,9 @@ export const reservationService = {
   /**
    * Review queue for Lab Custodians and Admins.
    */
-  async getReviewQueue(): Promise<Reservation[]> {
-    return apiClient<Reservation[]>('/requests/review-queue');
+  async getReviewQueue(status?: string): Promise<Reservation[]> {
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    return apiClient<Reservation[]>(`/requests/review-queue${query}`);
   },
 
   /**

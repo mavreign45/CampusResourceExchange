@@ -129,6 +129,18 @@ class ResourceService:
             )
             or 0
         )
+        in_use = (
+            db.scalar(
+                select(func.count(Resource.id)).where(Resource.availability_status == "in_use")
+            )
+            or 0
+        )
+        maintenance = (
+            db.scalar(
+                select(func.count(Resource.id)).where(Resource.availability_status == "maintenance")
+            )
+            or 0
+        )
         category_count = db.scalar(select(func.count(func.distinct(Resource.category_id)))) or 0
         requires_verification = (
             db.scalar(
@@ -140,6 +152,32 @@ class ResourceService:
         return {
             "total_resources": total_resources,
             "available_now": available_now,
+            "in_use": in_use,
+            "maintenance": maintenance,
             "category_count": category_count,
             "requires_verification": requires_verification,
         }
+
+    @staticmethod
+    def update_resource(
+        db: Session,
+        resource_id: str,
+        payload_data: dict,
+    ) -> Optional[Resource]:
+        """Update fields on an existing resource."""
+        resource = ResourceService.get_resource_by_id(db, resource_id)
+        if not resource:
+            return None
+
+        for key, value in payload_data.items():
+            if value is not None and hasattr(resource, key):
+                setattr(resource, key, value)
+
+        try:
+            db.commit()
+            db.refresh(resource)
+        except Exception:
+            db.rollback()
+            raise
+
+        return resource

@@ -112,8 +112,12 @@ def _transition(
             ),
         )
     reservation.status = new_status.value
-    db.commit()
-    db.refresh(reservation)
+    try:
+        db.commit()
+        db.refresh(reservation)
+    except Exception:
+        db.rollback()
+        raise
     return reservation
 
 
@@ -227,6 +231,8 @@ def cancel_reservation(
         ReservationStatus.PENDING.value,
         ReservationStatus.APPROVED.value,
     )
+    if r.resource:
+        r.resource.availability_status = "available"
     cancelled = _transition(r, cancellable, ReservationStatus.CANCELLED, db)
 
     try:
@@ -237,14 +243,16 @@ def cancel_reservation(
     return cancelled
 
 
-def get_review_queue(db: Session, reviewer: User) -> List[Reservation]:
+def get_review_queue(
+    db: Session, reviewer: User, status_filter: Optional[str] = None
+) -> List[Reservation]:
     _assert_reviewer(reviewer)
-    return (
-        db.query(Reservation)
-        .filter(Reservation.status == ReservationStatus.PENDING.value)
-        .order_by(Reservation.created_at.asc())
-        .all()
-    )
+    query = db.query(Reservation)
+    if status_filter and status_filter.strip() and status_filter.strip() != "All":
+        query = query.filter(Reservation.status == status_filter.strip())
+    elif status_filter is None:
+        query = query.filter(Reservation.status == ReservationStatus.PENDING.value)
+    return query.order_by(Reservation.created_at.desc()).all()
 
 
 def review_reservation(
@@ -317,6 +325,8 @@ def mark_collected(
     _assert_reviewer(reviewer)
     r = _get_reservation_or_404(db, reservation_id)
     r.collected_at = datetime.now(timezone.utc)
+    if r.resource:
+        r.resource.availability_status = "in_use"
     return _transition(
         r,
         (ReservationStatus.READY_FOR_PICKUP.value,),
@@ -346,6 +356,8 @@ def mark_completed(
     r = _get_reservation_or_404(db, reservation_id)
     if not r.returned_at:
         r.returned_at = datetime.now(timezone.utc)
+    if r.resource:
+        r.resource.availability_status = "available"
     updated = _transition(
         r,
         (ReservationStatus.RETURN_PENDING.value, ReservationStatus.OVERDUE.value),

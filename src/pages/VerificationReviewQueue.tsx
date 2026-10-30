@@ -20,9 +20,15 @@ import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { ReservationReviewTab } from '../components/reservations/ReservationReviewTab';
 
-export const VerificationReviewQueue: React.FC = () => {
+interface VerificationReviewQueueProps {
+  initialTab?: 'reservations' | 'clearances';
+}
+
+export const VerificationReviewQueue: React.FC<VerificationReviewQueueProps> = ({
+  initialTab = 'reservations',
+}) => {
   const { user, isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState<'reservations' | 'clearances'>('reservations');
+  const [activeTab, setActiveTab] = useState<'reservations' | 'clearances'>(initialTab);
   const [requests, setRequests] = useState<EligibilityRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);

@@ -19,6 +19,7 @@ import { Modal } from '../ui/Modal';
 
 export const ReservationReviewTab: React.FC = () => {
   const { user } = useAuth();
+  const [statusFilter, setStatusFilter] = useState<string>('Pending');
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +37,7 @@ export const ReservationReviewTab: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await reservationService.getReviewQueue();
+      const data = await reservationService.getReviewQueue(statusFilter);
       setReservations(data);
     } catch (err: unknown) {
       const msg =
@@ -47,7 +48,7 @@ export const ReservationReviewTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [statusFilter]);
 
   useEffect(() => {
     fetchQueue();
@@ -150,9 +151,39 @@ export const ReservationReviewTab: React.FC = () => {
         </div>
       )}
 
+      {/* Status Filter Tabs */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+        {[
+          { label: 'Pending Review', value: 'Pending' },
+          { label: 'Approved', value: 'Approved' },
+          { label: 'Ready for Pickup', value: 'Ready for Pickup' },
+          { label: 'Active Loans', value: 'Collected' },
+          { label: 'Return Pending', value: 'Return Pending' },
+          { label: 'Overdue', value: 'Overdue' },
+          { label: 'Completed', value: 'Completed' },
+          { label: 'All Requests', value: 'All' },
+        ].map((tab) => {
+          const isActive = statusFilter === tab.value;
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => setStatusFilter(tab.value)}
+              className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all ${
+                isActive
+                  ? 'bg-navy-900 text-cyan-300 font-semibold shadow-xs'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex items-center justify-between">
         <span className="text-xs text-slate-500 font-medium">
-          Pending Resource Reservation Requests ({reservations.length})
+          {statusFilter === 'All' ? 'All Reservations' : `${statusFilter} Reservations`} ({reservations.length})
         </span>
         <Button
           variant="outline"
@@ -300,7 +331,7 @@ export const ReservationReviewTab: React.FC = () => {
                     >
                       {isBusy ? 'Updating...' : 'Record Return'}
                     </Button>
-                  ) : r.status === 'Return Pending' ? (
+                  ) : r.status === 'Return Pending' || r.status === 'Overdue' ? (
                     <Button
                       variant="primary"
                       size="sm"
@@ -309,7 +340,7 @@ export const ReservationReviewTab: React.FC = () => {
                       className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
                       icon={<CheckCheck className="w-3.5 h-3.5" />}
                     >
-                      {isBusy ? 'Updating...' : 'Complete Reservation'}
+                      {isBusy ? 'Updating...' : r.status === 'Overdue' ? 'Resolve Overdue & Complete' : 'Complete Reservation'}
                     </Button>
                   ) : null}
                 </div>

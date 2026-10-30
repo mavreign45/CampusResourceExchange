@@ -45,6 +45,22 @@ class ResourceRead(ResourceBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ResourceUpdate(BaseModel):
+    name: Optional[str] = None
+    model_number: Optional[str] = None
+    short_description: Optional[str] = None
+    description: Optional[str] = None
+    availability_status: Optional[str] = None
+    estimated_available_date: Optional[str] = None
+    requires_verification: Optional[bool] = None
+    requires_training: Optional[bool] = None
+    requires_supervision: Optional[bool] = None
+    training_requirement: Optional[str] = None
+    eligibility: Optional[str] = None
+    max_borrow_hours: Optional[int] = None
+    item_condition: Optional[str] = None
+
+
 class ResourceListResponse(BaseModel):
     items: List[ResourceRead]
     total: int
@@ -56,5 +72,7 @@ class ResourceListResponse(BaseModel):
 class ResourceSummaryResponse(BaseModel):
     total_resources: int
     available_now: int
+    in_use: int = 0
+    maintenance: int = 0
     category_count: int
     requires_verification: int

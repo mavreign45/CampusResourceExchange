@@ -4,9 +4,9 @@ Reservations router — Phase 4.
 IMPORTANT: /requests/review-queue MUST be defined before /requests/{id}
            to prevent FastAPI treating 'review-queue' as a path parameter.
 """
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -54,13 +54,14 @@ def get_my_reservations(
 @router.get(
     "/review-queue",
     response_model=List[ReservationRead],
-    summary="Get all pending reservation requests for custodian review",
+    summary="Get reservation requests for custodian review",
 )
 def get_review_queue(
+    status: Optional[str] = Query(default=None, description="Optional status filter or 'All'"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(*_REVIEWER_ROLES)),
 ) -> List[ReservationRead]:
-    return reservation_service.get_review_queue(db, current_user)
+    return reservation_service.get_review_queue(db, current_user, status_filter=status)
 
 
 # ─── Single reservation (owner or reviewer) ──────────────────────────────────

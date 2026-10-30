@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   Compass,
   FileClock,
@@ -69,6 +69,15 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     ...(isReviewer
       ? [
           {
+            id: 'dashboard' as NavigationPage,
+            label: 'Lab Dashboard',
+            icon: <LayoutDashboard className="w-4 h-4" />,
+            badge: 'Live',
+            badgeColor: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+            isUpcoming: false,
+            visible: true,
+          },
+          {
             id: 'review_queue' as NavigationPage,
             label: 'Review Queue',
             icon: <CheckSquare className="w-4 h-4" />,
@@ -117,15 +126,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       badge: undefined,
       badgeColor: '',
       isUpcoming: false,
-      visible: true,
-    },
-    {
-      id: 'dashboard' as NavigationPage,
-      label: 'Lab Dashboard',
-      icon: <LayoutDashboard className="w-4 h-4" />,
-      badge: undefined,
-      badgeColor: '',
-      isUpcoming: true,
       visible: true,
     },
     {
